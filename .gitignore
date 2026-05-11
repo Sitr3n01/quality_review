@@ -1,0 +1,89 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.npm/
+
+# Build outputs
+dist/
+build/
+out/
+*.tgz
+*.tar.gz
+tsconfig.tsbuildinfo
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Quality gate generated reports (regenerated on every run)
+reports/*
+!reports/.gitkeep
+
+# Claude Code local state (not skill content)
+.claude/settings.local.json
+.claude/.cache/
+.claude/logs/
+
+# Codex local state
+.agents/settings.local.json
+.agents/.cache/
+
+# Editor / IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

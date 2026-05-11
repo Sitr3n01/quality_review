@@ -1,0 +1,104 @@
+# Quality rules
+
+This document spells out exactly how the gate decides between **passed**, **warning**, and **failed**. Every rule corresponds to a section of `quality/quality-gate.config.cjs`.
+
+## Status determination
+
+| Condition | Status |
+|---|---|
+| At least one finding with `severity: "blocking"` | `failed` |
+| No blocking findings, at least one `warning` | `warning` |
+| No blocking, no warnings | `passed` |
+
+`failed` causes `quality:check` to exit with code 1 (CI red). `warning` and `passed` exit 0.
+
+## Coverage
+
+Config: `coverage.{enabled, mode, allowDecrease, metrics, minimumDeltaToReport, blockOnMissingCoverageFile}`.
+
+- For each metric in `metrics` (default: `lines, statements, functions, branches`):
+  - If baseline value is `null` → emit `coverage-no-baseline` warning.
+  - If current is null but file exists → emit `coverage-metric-missing` warning.
+  - If `current < baseline - minimumDeltaToReport` and `allowDecrease` is false → **blocking** `coverage-drop`.
+  - If `current >= baseline + minimumDeltaToReport` → emit `coverage-improved` info.
+- If the coverage report file is missing:
+  - `blockOnMissingCoverageFile: true` → **blocking** `coverage-missing`.
+  - `blockOnMissingCoverageFile: false` → warning surfaced by the collector.
+
+## Duplication
+
+Config: `duplication.{enabled, allowIncrease, maxPercentage, jscpdJsonPaths, blockOnMissingReport}`.
+
+- Absolute cap: if `current.percentage > maxPercentage` → **blocking** `duplication-over-absolute-cap`.
+- Ratchet: if `current.percentage > baseline.percentage` and `allowIncrease` is false → **blocking** `duplication-increase`.
+- Improvement: emit `duplication-improved` info.
+- Missing report: behave like coverage based on `blockOnMissingReport`.
+
+## Lint
+
+Config: `lint.{enabled, allowNewErrors, allowNewWarnings, eslintJsonPath, blockOnMissingReport}`.
+
+- If `current.errors > baseline.errors` and `allowNewErrors` is false → **blocking** `lint-errors-increase`.
+- If `current.warnings > baseline.warnings` and `allowNewWarnings` is false → **blocking** `lint-warnings-increase`.
+- If errors decreased → emit `lint-errors-improved` info.
+- Missing report: behave like coverage based on `blockOnMissingReport`.
+
+## File size
+
+Config: `files.{warnLines, maxLinesNewFile, maxLinesExistingFile, blockIfOversizedFileGrows}`.
+
+- Walk `files.include` minus `files.exclude`.
+- For each file whose line count > `maxLinesExistingFile`:
+  - If baseline doesn't track it → warning (`oversized-file-no-baseline`).
+  - If current lines > baseline lines and `blockIfOversizedFileGrows` is true → **blocking** `oversized-file-grew`.
+  - Else → info (`oversized-file-stable`).
+- For each new file (detected via `git diff --diff-filter=A`) with lines > `maxLinesNewFile` → **blocking** `new-file-oversized`.
+- For each file with `warnLines <= lines <= maxLinesExistingFile` → warning (`file-near-limit`), capped to 10 to avoid noise.
+
+## Complexity
+
+Config: `complexity.{maxDepth, maxCyclomaticComplexity, maxFunctionLines, blockOnRegression, heuristicOnly}`.
+
+- v1 is **heuristic**: brace-depth counting and regex-based function detection. Every result is tagged `heuristicOnly: true`.
+- The collector emits one warning per run reminding the user the analysis is heuristic.
+- For each of `maxDepthViolations`, `complexityViolations`, `longFunctionViolations`:
+  - If current > baseline → blocking (or warning, controlled by `blockOnRegression`).
+  - If baseline is null and current > 0 → info `complexity-no-baseline`.
+
+Future work: integrate a real analyzer (ESLint complexity rule, SonarQube, Roslyn, etc.). The output shape is stable so consumers won't change.
+
+## Baseline policy
+
+`quality/baseline.json` holds the accepted state of `main`. Allowed transitions:
+
+- **Initialize**: run `npm run quality:baseline` once on main, commit `baseline.json` as a deliberate commit.
+- **Update after accepted improvement**: when `main` legitimately improved, run baseline update on main, commit.
+- **Update after accepted, documented regression**: rare. Should be its own PR, reviewed by a human, with a commit message explaining what was accepted and why.
+
+Forbidden transitions:
+
+- Updating baseline on a feature/PR branch to make `quality:check` pass.
+- Updating baseline silently in the same commit that introduces the regression.
+- Hiding a coverage drop or duplication increase via baseline relaxation.
+
+The `quality:baseline` command warns when the current branch is not main-like. AI prompts forbid suggesting baseline updates as a fix.
+
+## Working with legacy projects
+
+If the project has hundreds of oversized files, thousands of lint warnings, and no tests:
+
+1. Run `quality:report` once locally. Read `reports/quality-gate.md`.
+2. On main, run `quality:baseline`. Commit the resulting `baseline.json`.
+3. Enable the GitHub Actions workflow.
+4. Now every PR is compared against this snapshot. Improvement is free; new regressions are blocked.
+5. Schedule paydown work: pick a file or a rule and improve it, then update the baseline as part of the same PR (this is the only legitimate baseline-in-PR case).
+
+## Hiding technical debt
+
+The gate is designed so that technical debt is visible but not paralyzing:
+
+- it shows in `quality:report` output;
+- it shows in the PR Markdown summary;
+- it does not block PRs that don't make it worse.
+
+Resist the urge to weaken thresholds in `quality-gate.config.cjs` to silence the report. The report is the **point**: it makes debt countable.

@@ -1,0 +1,27 @@
+# Normalize line endings to LF in the repository.
+# Working-tree behavior is controlled by core.autocrlf on each clone.
+* text=auto eol=lf
+
+# Shell scripts must always be LF; bash refuses to run CRLF.
+*.sh text eol=lf
+
+# Markdown, YAML, JSON, JS, CJS: LF.
+*.md   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.js   text eol=lf
+*.cjs  text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+
+# Binaries: leave untouched.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.tgz  binary

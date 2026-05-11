@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": null,
+  "source": "initial-empty-baseline",
+  "coverage": {
+    "lines": null,
+    "statements": null,
+    "functions": null,
+    "branches": null
+  },
+  "duplication": {
+    "percentage": null,
+    "fragments": null,
+    "duplicatedLines": null
+  },
+  "eslint": {
+    "errors": null,
+    "warnings": null,
+    "ruleViolations": {}
+  },
+  "files": {
+    "oversizedFiles": [],
+    "maxLines": null,
+    "fileLineCounts": {}
+  },
+  "complexity": {
+    "maxDepthViolations": null,
+    "complexityViolations": null,
+    "longFunctionViolations": null
+  }
+}

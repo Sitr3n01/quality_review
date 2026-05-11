@@ -1,0 +1,29 @@
+{
+  "name": "lucas-quality-gate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic CI/CD quality gate for AI-assisted codebases. Ratchet-based regression detection with AI as advisory layer only.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "quality:report": "node scripts/quality/quality-gate.js report",
+    "quality:check": "node scripts/quality/quality-gate.js check",
+    "quality:baseline": "node scripts/quality/quality-gate.js baseline",
+    "quality:comment": "node scripts/quality/render-pr-comment.js",
+    "test:quality": "node --test \"tests/quality/**/*.test.js\"",
+    "test:coverage:ci": "echo \"No test runner configured. Add jest/vitest and update this script.\" && exit 0",
+    "duplication:ci": "echo \"No duplication tool configured. Install jscpd and update this script.\" && exit 0",
+    "lint": "echo \"No linter configured. Install eslint and update this script.\" && exit 0"
+  },
+  "keywords": [
+    "quality-gate",
+    "ci-cd",
+    "ratchet",
+    "ai-review",
+    "claude-code",
+    "codex",
+    "github-actions"
+  ]
+}
