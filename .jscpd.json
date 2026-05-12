@@ -1,0 +1,17 @@
+{
+  "threshold": 3,
+  "reporters": ["json"],
+  "output": "reports/duplication",
+  "format": ["javascript"],
+  "minLines": 8,
+  "minTokens": 80,
+  "ignore": [
+    ".agents/**",
+    ".claude/**",
+    "coverage/**",
+    "dist/**",
+    "build/**",
+    "node_modules/**",
+    "reports/**"
+  ]
+}

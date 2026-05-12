@@ -1,6 +1,6 @@
 # Claude Quality Gate Assistant
 
-Use the `lucas-quality-gate` skill.
+Use the `quality-gate` skill.
 
 You are assisting a human reviewer after the deterministic quality gate has run.
 

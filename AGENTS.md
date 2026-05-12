@@ -1,9 +1,10 @@
 # Agent Instructions
 
-This repository is the canonical template for the **lucas-quality-gate** skill
-(Codex side: `.agents/skills/lucas-quality-gate/`).
+This repository is the canonical template for the **quality-gate** skill
+(Codex side: `.agents/skills/quality-gate/`). The public product name is
+**Quality Gate**.
 
-## Lucas Quality Gate
+## Quality Gate
 
 The repository uses a deterministic CI/CD quality gate. AI review is advisory
 only; the human reviewer owns the merge decision.
@@ -41,24 +42,36 @@ When reviewing a PR in this repo:
 npm run quality:report     # collect + write reports
 npm run quality:check      # collect + compare vs baseline
 npm run quality:baseline   # rewrite baseline.json (use on main only)
+npm run quality:validate   # validate gate config and required scripts
+npm run audit:report       # write npm audit JSON report
+npm run complexity:ci      # write ESLint complexity JSON report
 npm run test:quality       # unit tests for the quality scripts
+npm run test:integration   # integration tests for repo wiring
+npm run test:coverage:ci   # tests plus coverage thresholds
 ```
 
 ## Where to look
 
-- `.agents/skills/lucas-quality-gate/SKILL.md` — skill entry point
-- `.agents/skills/lucas-quality-gate/references/philosophy.md` — why this skill exists
-- `.agents/skills/lucas-quality-gate/references/quality-rules.md` — exact thresholds
-- `.agents/skills/lucas-quality-gate/references/ai-review-policy.md` — AI limits
-- `.agents/skills/lucas-quality-gate/references/github-actions.md` — workflow design
+- `.agents/skills/quality-gate/SKILL.md` — skill entry point
+- `.agents/skills/quality-gate/references/philosophy.md` — why this skill exists
+- `.agents/skills/quality-gate/references/quality-rules.md` — exact thresholds
+- `.agents/skills/quality-gate/references/ai-review-policy.md` — AI limits
+- `.agents/skills/quality-gate/references/github-actions.md` — workflow design
+- `GEMINI.md` and `.agent/rules/quality-gate.md` — Google Antigravity project rules
 
 ## Mirroring with the Claude side
 
-The skill is also installed at `.claude/skills/lucas-quality-gate/`. After
+The skill is also installed at `.claude/skills/quality-gate/`. After
 editing one side, sync the other:
 
 ```
-bash .agents/skills/lucas-quality-gate/scripts/install-or-sync.sh
+bash .agents/skills/quality-gate/scripts/install-or-sync.sh
 ```
 
 The script reports divergent files; pass `--force` to apply.
+
+## Tool configuration
+
+- Codex discovers the skill from `.agents/skills/quality-gate/`.
+- Claude Code and Claude Desktop discover the skill from `.claude/skills/quality-gate/`.
+- Google Antigravity reads the shared `AGENTS.md`, `GEMINI.md`, and `.agent/rules/quality-gate.md` rules.

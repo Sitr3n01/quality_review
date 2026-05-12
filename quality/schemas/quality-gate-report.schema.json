@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/quality-gate/quality-gate-report.schema.json",
+  "title": "Quality Gate Report",
+  "type": "object",
+  "required": ["schemaVersion", "status", "generatedAt", "mode", "stack", "summary", "baseline", "current", "regressions", "warnings", "infos", "recommendations", "aiReviewContext"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "enum": ["passed", "warning", "failed"] },
+    "generatedAt": { "type": "string" },
+    "mode": { "enum": ["report", "check"] },
+    "stack": { "type": "object" },
+    "summary": { "type": "object" },
+    "baseline": { "type": "object" },
+    "current": { "type": "object" },
+    "regressions": { "type": "array" },
+    "warnings": { "type": "array" },
+    "infos": { "type": "array" },
+    "recommendations": { "type": "array" },
+    "aiReviewContext": { "type": "object" }
+  }
+}

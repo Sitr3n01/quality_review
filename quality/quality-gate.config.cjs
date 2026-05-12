@@ -1,4 +1,4 @@
-// Lucas Quality Gate configuration
+// Quality Gate configuration
 //
 // This file controls the deterministic quality gate. Each section maps to a
 // collector under `scripts/quality/`. The gate is opinionated by default but
@@ -23,6 +23,12 @@ module.exports = {
     mode: "ratchet",
     allowDecrease: false,
     metrics: ["lines", "statements", "functions", "branches"],
+    minimums: {
+      lines: 80,
+      statements: 80,
+      functions: 80,
+      branches: 70,
+    },
     minimumDeltaToReport: 0.01,
     blockOnMissingCoverageFile: false,
     coverageSummaryPaths: [
@@ -33,9 +39,11 @@ module.exports = {
 
   audit: {
     enabled: true,
+    npmAuditJsonPath: "reports/audit/npm-audit.json",
     blockLevels: ["critical"],
     warnLevels: ["high", "moderate"],
     infoLevels: ["low"],
+    blockOnMissingReport: false,
   },
 
   lint: {
@@ -62,10 +70,15 @@ module.exports = {
   files: {
     enabled: true,
     include: [
+      "*.cjs",
+      "*.js",
+      "quality/**/*.cjs",
+      "scripts/**/*.js",
       "src/**/*.js",
       "src/**/*.jsx",
       "src/**/*.ts",
       "src/**/*.tsx",
+      "tests/**/*.js",
       "Assets/**/*.cs",
       "**/*.cs",
     ],
@@ -89,11 +102,12 @@ module.exports = {
 
   complexity: {
     enabled: true,
+    eslintJsonPath: "reports/complexity/eslint-complexity.json",
     maxDepth: 4,
     maxCyclomaticComplexity: 10,
     maxFunctionLines: 80,
     blockOnRegression: true,
-    heuristicOnly: true,
+    heuristicFallback: true,
   },
 
   pullRequest: {

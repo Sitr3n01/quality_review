@@ -16,6 +16,14 @@ function buildBaseline(current, options = {}) {
       functions: null,
       branches: null,
     },
+    audit: {
+      info: 0,
+      low: 0,
+      moderate: 0,
+      high: 0,
+      critical: 0,
+      total: 0,
+    },
     duplication: {
       percentage: null,
       fragments: null,
@@ -50,6 +58,14 @@ function buildBaseline(current, options = {}) {
     baseline.duplication.percentage = typeof current.duplication.percentage === "number" ? current.duplication.percentage : null;
     baseline.duplication.fragments = typeof current.duplication.fragments === "number" ? current.duplication.fragments : null;
     baseline.duplication.duplicatedLines = typeof current.duplication.duplicatedLines === "number" ? current.duplication.duplicatedLines : null;
+  }
+
+  if (current.audit && current.audit.available && current.audit.counts) {
+    for (const level of ["info", "low", "moderate", "high", "critical", "total"]) {
+      if (typeof current.audit.counts[level] === "number") {
+        baseline.audit[level] = current.audit.counts[level];
+      }
+    }
   }
 
   if (current.eslint && current.eslint.available) {

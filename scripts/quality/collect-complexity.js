@@ -11,7 +11,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const { REPO_ROOT, walkFiles, normalizePath } = require("./utils");
+const { REPO_ROOT, walkFiles, normalizePath, fileExists, readJson } = require("./utils");
 
 function countMaxBraceDepth(text) {
   let depth = 0;
@@ -123,7 +123,50 @@ function analyzeFunctions(text, opts) {
   return { longFunctions, complexFunctions };
 }
 
-function collectComplexity(config) {
+function extractFromEslintReport(json) {
+  if (!Array.isArray(json)) return null;
+
+  let maxDepthViolations = 0;
+  let complexityViolations = 0;
+  let longFunctionViolations = 0;
+  const details = [];
+
+  for (const entry of json) {
+    if (!entry || typeof entry !== "object" || !Array.isArray(entry.messages)) continue;
+    const file = entry.filePath ? normalizePath(path.relative(REPO_ROOT, entry.filePath)) : "unknown";
+    for (const msg of entry.messages) {
+      if (!msg || !msg.ruleId) continue;
+      const base = {
+        file,
+        ruleId: msg.ruleId,
+        message: msg.message,
+        startLine: msg.line || null,
+      };
+      if (msg.ruleId === "max-depth") {
+        maxDepthViolations += 1;
+        details.push({ ...base, type: "depth" });
+      } else if (msg.ruleId === "complexity") {
+        complexityViolations += 1;
+        details.push({ ...base, type: "complexity" });
+      } else if (msg.ruleId === "max-lines-per-function") {
+        longFunctionViolations += 1;
+        details.push({ ...base, type: "long-function" });
+      }
+    }
+  }
+
+  return {
+    heuristicOnly: false,
+    maxDepthViolations,
+    complexityViolations,
+    longFunctionViolations,
+    details: details.slice(0, 50),
+    source: null,
+    warnings: [],
+  };
+}
+
+function collectHeuristicComplexity(config) {
   const filesCfg = (config && config.files) || {};
   const complexityCfg = (config && config.complexity) || {};
   const include = filesCfg.include || ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"];
@@ -199,8 +242,62 @@ function collectComplexity(config) {
   };
 }
 
+function collectComplexity(config) {
+  const complexityCfg = (config && config.complexity) || {};
+  const rel = complexityCfg.eslintJsonPath || "reports/complexity/eslint-complexity.json";
+  const abs = path.join(REPO_ROOT, rel);
+
+  if (fileExists(abs)) {
+    const json = readJson(abs, null);
+    const extracted = extractFromEslintReport(json);
+    if (extracted) {
+      extracted.source = rel;
+      return extracted;
+    }
+    if (complexityCfg.heuristicFallback === false) {
+      return {
+        heuristicOnly: false,
+        maxDepthViolations: null,
+        complexityViolations: null,
+        longFunctionViolations: null,
+        details: [],
+        source: rel,
+        warnings: [
+          {
+            severity: "warning",
+            message: `Complexity report ${rel} has an unrecognized shape.`,
+            recommendation: "Regenerate with `npm run complexity:ci`.",
+          },
+        ],
+      };
+    }
+  }
+
+  if (complexityCfg.heuristicFallback === false) {
+    return {
+      heuristicOnly: false,
+      maxDepthViolations: null,
+      complexityViolations: null,
+      longFunctionViolations: null,
+      details: [],
+      source: null,
+      warnings: [
+        {
+          severity: "warning",
+          message: `Complexity report not found at ${rel}.`,
+          recommendation: "Run `npm run complexity:ci` before the gate.",
+        },
+      ],
+    };
+  }
+
+  return collectHeuristicComplexity(config);
+}
+
 module.exports = {
   collectComplexity,
+  collectHeuristicComplexity,
+  extractFromEslintReport,
   countMaxBraceDepth,
   analyzeFunctions,
 };

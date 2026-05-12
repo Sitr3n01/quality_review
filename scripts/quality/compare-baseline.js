@@ -1,18 +1,4 @@
 // Apply ratchet and absolute rules to produce the final gate verdict.
-//
-// Inputs:
-//   - current: aggregated collector outputs
-//   - baseline: parsed quality/baseline.json
-//   - config: parsed quality/quality-gate.config.cjs
-//
-// Outputs an object with:
-//   - status: "passed" | "warning" | "failed"
-//   - summary: { blocking, warnings, infos }
-//   - regressions: array of findings with severity "blocking"
-//   - warnings: array of findings with severity "warning"
-//   - infos: array of findings with severity "info"
-//   - recommendations: array of strings
-//   - aiReviewContext: { shouldRunAiExplainer, reason }
 
 const { safeNumber } = require("./utils");
 
@@ -28,6 +14,7 @@ function compareCoverage(current, baseline, config, out) {
   const cur = current.coverage || {};
   const base = baseline.coverage || {};
   const metrics = cfg.metrics || ["lines", "statements", "functions", "branches"];
+  const minimums = cfg.minimums || {};
   const minDelta = typeof cfg.minimumDeltaToReport === "number" ? cfg.minimumDeltaToReport : 0.01;
 
   if (!cur.available) {
@@ -65,6 +52,17 @@ function compareCoverage(current, baseline, config, out) {
         recommendation: "Run `npm run quality:baseline` on main to lock in the current value.",
       });
       continue;
+    }
+    if (typeof minimums[metric] === "number" && c + EPSILON < minimums[metric]) {
+      pushFinding(out.regressions, {
+        type: "coverage-below-minimum",
+        severity: "blocking",
+        metric,
+        current: c,
+        minimum: minimums[metric],
+        message: `Coverage ${metric} is ${c.toFixed(2)}%, below the minimum of ${minimums[metric].toFixed(2)}%.`,
+        recommendation: "Add tests for uncovered critical paths before merging.",
+      });
     }
     const delta = Math.round((c - b) * 100) / 100;
     if (!cfg.allowDecrease && c + EPSILON < b - minDelta) {
@@ -155,6 +153,70 @@ function compareDuplication(current, baseline, config, out) {
       delta: Math.round((c - b) * 100) / 100,
       message: `Duplication improved from ${b.toFixed(2)}% to ${c.toFixed(2)}%.`,
     });
+  }
+}
+
+function compareAudit(current, config, out) {
+  const cfg = config.audit || {};
+  if (!cfg.enabled) return;
+  const cur = current.audit || {};
+  const counts = cur.counts || {};
+
+  if (!cur.available) {
+    if (cfg.blockOnMissingReport) {
+      pushFinding(out.regressions, {
+        type: "audit-missing",
+        severity: "blocking",
+        message: "Audit report is missing and policy requires it.",
+        recommendation: "Run `npm run audit:report` before the gate.",
+      });
+    }
+    return;
+  }
+
+  const blockLevels = cfg.blockLevels || ["critical"];
+  const warnLevels = cfg.warnLevels || ["high", "moderate"];
+  const infoLevels = cfg.infoLevels || ["low"];
+
+  for (const level of blockLevels) {
+    const count = Number(counts[level]) || 0;
+    if (count > 0) {
+      pushFinding(out.regressions, {
+        type: "audit-vulnerability",
+        severity: "blocking",
+        level,
+        count,
+        message: `Dependency audit found ${count} ${level} vulnerabilities.`,
+        recommendation: "Upgrade or replace vulnerable dependencies before merging.",
+      });
+    }
+  }
+
+  for (const level of warnLevels) {
+    const count = Number(counts[level]) || 0;
+    if (count > 0) {
+      pushFinding(out.warnings, {
+        type: "audit-vulnerability",
+        severity: "warning",
+        level,
+        count,
+        message: `Dependency audit found ${count} ${level} vulnerabilities.`,
+        recommendation: "Review and schedule dependency updates.",
+      });
+    }
+  }
+
+  for (const level of infoLevels) {
+    const count = Number(counts[level]) || 0;
+    if (count > 0) {
+      pushFinding(out.infos, {
+        type: "audit-vulnerability",
+        severity: "info",
+        level,
+        count,
+        message: `Dependency audit found ${count} ${level} vulnerabilities.`,
+      });
+    }
   }
 }
 
@@ -359,10 +421,11 @@ function compareBaseline(current, baseline, config) {
   };
 
   // Surface collector-level warnings (missing reports, git fallbacks, etc).
-  for (const section of ["coverage", "eslint", "duplication", "files", "complexity"]) {
+  for (const section of ["coverage", "audit", "eslint", "duplication", "files", "complexity"]) {
     const data = current[section];
     if (!data) continue;
-    const list = data.warnings || data.warningsList || [];
+    const candidateList = data.warnings || data.warningsList || [];
+    const list = Array.isArray(candidateList) ? candidateList : [];
     for (const w of list) {
       const severity = w.severity || "warning";
       const target = severity === "blocking" ? out.regressions : severity === "info" ? out.infos : out.warnings;
@@ -371,6 +434,7 @@ function compareBaseline(current, baseline, config) {
   }
 
   compareCoverage(current, baseline, config, out);
+  compareAudit(current, config, out);
   compareDuplication(current, baseline, config, out);
   compareLint(current, baseline, config, out);
   compareFiles(current, baseline, config, out);
@@ -418,6 +482,7 @@ function compareBaseline(current, baseline, config) {
 module.exports = {
   compareBaseline,
   compareCoverage,
+  compareAudit,
   compareDuplication,
   compareLint,
   compareFiles,

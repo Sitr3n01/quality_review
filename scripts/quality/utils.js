@@ -1,4 +1,4 @@
-// Shared helpers for the lucas-quality-gate scripts.
+// Shared helpers for the quality-gate scripts.
 //
 // Design rules:
 //   - All I/O and subprocess access funnels through this file.

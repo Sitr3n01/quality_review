@@ -1,7 +1,7 @@
 # AI Review Policy (CI prompts)
 
 Shared rules for any AI-driven step in CI/CD that touches a PR. These apply to
-the Codex and Claude workflows shipped with the `lucas-quality-gate` skill,
+the Codex and Claude workflows shipped with the `quality-gate` skill,
 and to any future AI workflow added to this repo.
 
 ## Authority

@@ -1,0 +1,12 @@
+[
+  {
+    "filePath": "C:/repo/scripts/quality/example.js",
+    "warningCount": 3,
+    "errorCount": 0,
+    "messages": [
+      { "ruleId": "complexity", "message": "Function has a complexity of 12.", "line": 10 },
+      { "ruleId": "max-depth", "message": "Blocks are nested too deeply.", "line": 20 },
+      { "ruleId": "max-lines-per-function", "message": "Function has too many lines.", "line": 30 }
+    ]
+  }
+]

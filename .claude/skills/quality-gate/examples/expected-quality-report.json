@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "status": "failed",
+  "generatedAt": "2026-01-01T00:00:00.000Z",
+  "mode": "check",
+  "stack": {
+    "packageManager": "npm",
+    "testRunner": "jest",
+    "eslint": true,
+    "typescript": true,
+    "unity": false,
+    "python": false,
+    "hasGit": true
+  },
+  "summary": {
+    "blocking": 2,
+    "warnings": 2,
+    "infos": 1
+  },
+  "baseline": {
+    "schemaVersion": 1,
+    "generatedAt": "2025-12-15T10:00:00.000Z",
+    "source": "quality:baseline from branch main",
+    "coverage": {
+      "lines": 80,
+      "statements": 80,
+      "functions": 75,
+      "branches": 70
+    },
+    "audit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "duplication": {
+      "percentage": 2.1,
+      "fragments": 5,
+      "duplicatedLines": 80
+    },
+    "eslint": {
+      "errors": 0,
+      "warnings": 3,
+      "ruleViolations": {
+        "no-unused-vars": 2,
+        "complexity": 1
+      }
+    },
+    "files": {
+      "oversizedFiles": [
+        { "file": "src/api.js", "lines": 1500 }
+      ],
+      "maxLines": 1500,
+      "fileLineCounts": {
+        "src/api.js": 1500
+      }
+    },
+    "complexity": {
+      "maxDepthViolations": 1,
+      "complexityViolations": 2,
+      "longFunctionViolations": 3
+    }
+  },
+  "current": {
+    "coverage": {
+      "available": true,
+      "metrics": {
+        "lines": 81.10,
+        "statements": 80.05,
+        "functions": 75.00,
+        "branches": 68.20
+      },
+      "source": "coverage/coverage-summary.json",
+      "warnings": []
+    },
+    "audit": {
+      "available": true,
+      "counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "source": "reports/audit/npm-audit.json",
+      "warnings": []
+    },
+    "duplication": {
+      "available": true,
+      "percentage": 2.0,
+      "fragments": 4,
+      "duplicatedLines": 70,
+      "source": "reports/duplication/jscpd-report.json",
+      "warnings": []
+    },
+    "eslint": {
+      "available": true,
+      "errors": 0,
+      "warnings": 3,
+      "ruleViolations": { "no-unused-vars": 2, "complexity": 1 },
+      "topFiles": [],
+      "warningsList": []
+    },
+    "files": {
+      "available": true,
+      "totalFiles": 42,
+      "changedFiles": ["src/api.js"],
+      "changedFilesStrategy": "origin/main...HEAD",
+      "addedFiles": [],
+      "largestFiles": [{ "file": "src/api.js", "lines": 1812 }],
+      "oversizedFiles": [{ "file": "src/api.js", "lines": 1812, "limit": 1200 }],
+      "nearLimitFiles": [],
+      "fileLineCounts": { "src/api.js": 1812 },
+      "maxLines": 1812,
+      "thresholds": {
+        "warnLines": 500,
+        "maxLinesNewFile": 800,
+        "maxLinesExistingFile": 1200
+      },
+      "warnings": []
+    },
+    "complexity": {
+      "heuristicOnly": true,
+      "maxDepthViolations": 1,
+      "complexityViolations": 2,
+      "longFunctionViolations": 3,
+      "details": [],
+      "warnings": [
+        {
+          "severity": "warning",
+          "message": "Complexity analysis is heuristic in this first version.",
+          "recommendation": "Adopt a real analyzer (ESLint complexity rule, SonarQube, Roslyn for C#) when ready."
+        }
+      ]
+    }
+  },
+  "regressions": [
+    {
+      "type": "coverage-drop",
+      "severity": "blocking",
+      "metric": "branches",
+      "baseline": 70,
+      "current": 68.20,
+      "delta": -1.80,
+      "message": "Coverage branches decreased from 70.00% to 68.20%.",
+      "recommendation": "Add tests for the changed behavior or revert the offending change."
+    },
+    {
+      "type": "oversized-file-grew",
+      "severity": "blocking",
+      "file": "src/api.js",
+      "baselineLines": 1500,
+      "currentLines": 1812,
+      "delta": 312,
+      "message": "Oversized file src/api.js grew from 1500 to 1812 lines.",
+      "recommendation": "Move new code into a separate, smaller module."
+    }
+  ],
+  "warnings": [
+    {
+      "type": "complexity-collector",
+      "severity": "warning",
+      "message": "Complexity analysis is heuristic in this first version.",
+      "recommendation": "Adopt a real analyzer (ESLint complexity rule, SonarQube, Roslyn for C#) when ready."
+    },
+    {
+      "type": "file-near-limit",
+      "severity": "warning",
+      "file": "src/api.js",
+      "currentLines": 1812,
+      "warnAt": 500,
+      "message": "File src/api.js has 1812 lines, approaching the warn threshold of 500."
+    }
+  ],
+  "infos": [
+    {
+      "type": "coverage-improved",
+      "severity": "info",
+      "metric": "lines",
+      "baseline": 80,
+      "current": 81.10,
+      "delta": 1.10,
+      "message": "Coverage lines improved from 80.00% to 81.10%."
+    }
+  ],
+  "recommendations": [
+    "Add tests for the changed behavior or revert the offending change.",
+    "Move new code into a separate, smaller module.",
+    "Adopt a real analyzer (ESLint complexity rule, SonarQube, Roslyn for C#) when ready."
+  ],
+  "aiReviewContext": {
+    "shouldRunAiExplainer": true,
+    "reason": "Quality gate failed with blocking regressions."
+  }
+}

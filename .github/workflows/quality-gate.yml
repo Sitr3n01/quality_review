@@ -31,9 +31,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies deterministically
         run: npm ci --no-audit --no-fund
+
+      - name: Validate quality configuration
+        run: npm run quality:validate
+
+      - name: Write audit report
+        run: npm run audit:report
 
       - name: Audit critical vulnerabilities
         run: npm audit --audit-level=critical
@@ -55,8 +62,10 @@ jobs:
         run: npm run test:coverage:ci --if-present
 
       - name: Run duplication report
-        continue-on-error: true
         run: npm run duplication:ci --if-present
+
+      - name: Run complexity report
+        run: npm run complexity:ci --if-present
 
       - name: Run quality gate
         id: quality_gate
@@ -82,7 +91,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const marker = '<!-- lucas-quality-gate-comment -->';
+            const marker = '<!-- quality-gate-comment -->';
             const path = 'reports/pr-comment.md';
 
             if (!fs.existsSync(path)) {

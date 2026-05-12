@@ -1,0 +1,12 @@
+[
+  {
+    "filePath": "C:/repo/scripts/quality/example.js",
+    "errorCount": 1,
+    "warningCount": 2,
+    "messages": [
+      { "ruleId": "no-unused-vars", "severity": 2 },
+      { "ruleId": "complexity", "severity": 1 },
+      { "ruleId": null, "severity": 1 }
+    ]
+  }
+]

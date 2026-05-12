@@ -1,0 +1,13 @@
+{
+  "auditReportVersion": 2,
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 1,
+      "moderate": 2,
+      "high": 1,
+      "critical": 0,
+      "total": 4
+    }
+  }
+}
