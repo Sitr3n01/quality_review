@@ -94,6 +94,30 @@ test("eslint collector reports missing and malformed JSON", () => {
   assert.match(malformed.warningsList[0].message, /not a JSON array/);
 });
 
+test("eslint collector tolerates partial entries", () => {
+  const dir = path.join(process.cwd(), "reports", "test-fixtures", "eslint");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "partial.json"),
+    JSON.stringify([
+      null,
+      {
+        errorCount: "not-a-number",
+        warningCount: 1,
+        messages: "not-an-array",
+      },
+    ]),
+    "utf8",
+  );
+
+  const result = collectEslint({ lint: { eslintJsonPath: "reports/test-fixtures/eslint/partial.json" } });
+  assert.equal(result.available, true);
+  assert.equal(result.errors, 0);
+  assert.equal(result.warnings, 1);
+  assert.deepEqual(result.ruleViolations, {});
+  assert.equal(result.topFiles[0].file, "unknown");
+});
+
 test("duplication collector handles modern JSCPD report shape", () => {
   const metrics = extractFromJscpd(fixture("jscpd-report.json"));
   assert.deepEqual(metrics, { percentage: 1.5, fragments: 2, duplicatedLines: 12 });
@@ -269,7 +293,9 @@ test("file metrics collector can measure configured file sets", () => {
   const sampleDir = path.join(process.cwd(), "reports", "test-fixtures", "file-metrics");
   fs.mkdirSync(sampleDir, { recursive: true });
   const sample = path.join(sampleDir, "sample.js");
+  const oversized = path.join(sampleDir, "oversized.js");
   fs.writeFileSync(sample, "one\ntwo\nthree\n", "utf8");
+  fs.writeFileSync(oversized, Array.from({ length: 25 }, (_, i) => `line ${i}`).join("\n"), "utf8");
 
   const result = collectFileMetrics({
     files: {
@@ -284,4 +310,6 @@ test("file metrics collector can measure configured file sets", () => {
   assert.equal(result.available, true);
   assert.equal(result.fileLineCounts["reports/test-fixtures/file-metrics/sample.js"], 4);
   assert.equal(result.nearLimitFiles.length, 1);
+  assert.equal(result.oversizedFiles.length, 1);
+  assert.equal(result.maxLines, 25);
 });

@@ -111,7 +111,7 @@ function safeNumber(value) {
 
 function normalizePath(p) {
   if (!p) return p;
-  return p.split(path.sep).join("/");
+  return p.replace(/\\/g, "/");
 }
 
 // Simple glob -> RegExp. Supports **, *, ?, and literal text.

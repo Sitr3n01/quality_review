@@ -25,6 +25,7 @@ test("required workflow and prompt files exist", () => {
     ".github/prompts/ai-review-policy.md",
     ".agent/rules/quality-gate.md",
     "GEMINI.md",
+    "tests/run-node-tests.js",
   ]) {
     assert.equal(fs.existsSync(path.join(process.cwd(), rel)), true, rel);
   }
