@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/quality-gate/quality-gate-report.schema.json",
+  "$id": "https://raw.githubusercontent.com/Sitr3n01/quality_review/main/quality/schemas/quality-gate-report.schema.json",
   "title": "Quality Gate Report",
   "type": "object",
   "required": ["schemaVersion", "status", "generatedAt", "mode", "stack", "summary", "baseline", "current", "regressions", "warnings", "infos", "recommendations", "aiReviewContext"],

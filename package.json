@@ -1,6 +1,6 @@
 {
   "name": "quality-gate",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Deterministic CI/CD quality gate for AI-assisted codebases. Ratchet-based regression detection with AI as advisory layer only.",
   "license": "MIT",
@@ -15,9 +15,9 @@
     "quality:validate": "node scripts/quality/validate-config.js",
     "audit:report": "node scripts/quality/run-audit-report.js",
     "complexity:ci": "node scripts/quality/run-complexity-report.js",
-    "test:quality": "node --test \"tests/quality/**/*.test.js\"",
-    "test:integration": "node --test \"tests/integration/**/*.test.js\"",
-    "test:coverage:ci": "c8 --all --include=scripts/quality/*.js --report-dir coverage --reporter=json-summary --reporter=text --check-coverage --lines 80 --statements 80 --functions 80 --branches 70 node --test \"tests/quality/**/*.test.js\" \"tests/integration/**/*.test.js\"",
+    "test:quality": "node tests/run-node-tests.js tests/quality",
+    "test:integration": "node tests/run-node-tests.js tests/integration",
+    "test:coverage:ci": "c8 --all --include=scripts/quality/*.js --report-dir coverage --reporter=json-summary --reporter=text --check-coverage --lines 80 --statements 80 --functions 80 --branches 70 node tests/run-node-tests.js tests/quality tests/integration",
     "duplication:ci": "jscpd --config .jscpd.json --noTips scripts/quality",
     "lint": "eslint ."
   },
@@ -28,6 +28,7 @@
     "ai-review",
     "claude-code",
     "codex",
+    "google-antigravity",
     "github-actions"
   ],
   "devDependencies": {

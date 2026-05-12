@@ -1,4 +1,7 @@
-# quality-gate
+# Quality Gate
+
+[![CI](https://github.com/Sitr3n01/quality_review/actions/workflows/ci.yml/badge.svg)](https://github.com/Sitr3n01/quality_review/actions/workflows/ci.yml)
+[![Quality Gate](https://github.com/Sitr3n01/quality_review/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/Sitr3n01/quality_review/actions/workflows/quality-gate.yml)
 
 A deterministic CI/CD quality gate for AI-assisted codebases, packaged as an Agent Skill for Claude Code, Claude Desktop, Codex, and project rules for Google Antigravity.
 
@@ -9,6 +12,18 @@ The gate replaces ad-hoc manual review of AI-generated code with versioned, repr
 Modern codebases receive more AI-generated changes than humans can carefully review. Manual review at every PR does not scale, and a blanket "AI-approved" label removes accountability. This project provides a third option: a ratchet-based quality gate that allows imperfect projects to adopt the workflow without first becoming perfect.
 
 The gate compares each pull request against a versioned `baseline.json` that encodes the accepted state of the main branch. Improvements are always free. Regressions block. The baseline is updated on `main` by a human, in a deliberate commit, never silently as part of a feature PR.
+
+## Public Release
+
+**Quality Gate v1.0** is the public, neutral release name for this template.
+It is distributed as a copyable GitHub template and agent skill bundle, not as a
+published runtime npm package. The package metadata is versioned so CI, lockfile,
+and future GitHub releases can refer to the same release number.
+
+The v1.0 release includes deterministic install, audit, lint, coverage,
+duplication, file-size, and ESLint AST complexity checks; CI coverage thresholds;
+weekly Dependabot updates; mirrored Claude/Codex skills; and Google Antigravity
+workspace rules. See `CHANGELOG.md` for release notes.
 
 The skill ships:
 
@@ -86,7 +101,11 @@ Then merge the `scripts` section of this repository's `package.json` into your o
     "quality:check":     "node scripts/quality/quality-gate.js check",
     "quality:baseline":  "node scripts/quality/quality-gate.js baseline",
     "quality:comment":   "node scripts/quality/render-pr-comment.js",
-    "test:quality":      "node --test \"tests/quality/**/*.test.js\""
+    "quality:validate":  "node scripts/quality/validate-config.js",
+    "audit:report":      "node scripts/quality/run-audit-report.js",
+    "complexity:ci":     "node scripts/quality/run-complexity-report.js",
+    "test:quality":      "node tests/run-node-tests.js tests/quality",
+    "test:integration":  "node tests/run-node-tests.js tests/integration"
   }
 }
 ```
@@ -178,6 +197,11 @@ Two files control the gate:
 
 - `quality/quality-gate.config.cjs` defines thresholds, ratchet modes, file include/exclude globs, and per-category toggles. All sections are documented inline.
 - `quality/baseline.json` records the accepted state of `main`. It is versioned in git so every change is visible in `git blame`.
+
+Machine-readable shapes are published in `quality/schemas/`:
+
+- `quality/schemas/baseline.schema.json`
+- `quality/schemas/quality-gate-report.schema.json`
 
 Both files are designed to be edited deliberately. AI agents are forbidden by the shipped prompts from modifying either file to make a failing PR pass.
 

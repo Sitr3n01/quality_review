@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/quality-gate/baseline.schema.json",
+  "$id": "https://raw.githubusercontent.com/Sitr3n01/quality_review/main/quality/schemas/baseline.schema.json",
   "title": "Quality Gate Baseline",
   "type": "object",
   "required": ["schemaVersion", "generatedAt", "source", "coverage", "audit", "duplication", "eslint", "files", "complexity"],
