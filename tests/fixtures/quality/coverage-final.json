@@ -1,0 +1,11 @@
+{
+  "scripts/quality/example.js": {
+    "s": { "0": 1, "1": 0 },
+    "f": { "0": 1 },
+    "b": { "0": [1, 0] },
+    "statementMap": {
+      "0": { "start": { "line": 1 } },
+      "1": { "start": { "line": 2 } }
+    }
+  }
+}

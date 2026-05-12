@@ -15,8 +15,13 @@ concurrency:
 
 jobs:
   build:
-    name: Build, lint, test
+    name: Build, lint, test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18.18.0, 20, 22]
 
     if: github.event.pull_request.draft == false || github.event_name != 'pull_request'
 
@@ -29,11 +34,18 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies deterministically
         run: npm ci --no-audit --no-fund
+
+      - name: Validate quality configuration
+        run: npm run quality:validate
+
+      - name: Write audit report
+        run: npm run audit:report
 
       - name: Audit critical vulnerabilities
         run: npm audit --audit-level=critical
@@ -45,11 +57,14 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
+      - name: Complexity report
+        run: npm run complexity:ci
+
+      - name: Duplication report
+        run: npm run duplication:ci
+
       - name: Tests with coverage
         run: npm run test:coverage:ci --if-present
-
-      - name: Quality scripts unit tests
-        run: npm run test:quality
 
       - name: Upload coverage artifact
         if: always()

@@ -1,31 +1,67 @@
 {
   "schemaVersion": 1,
-  "generatedAt": null,
-  "source": "initial-empty-baseline",
+  "generatedAt": "2026-05-12T16:21:37.404Z",
+  "source": "quality:baseline from branch main",
   "coverage": {
-    "lines": null,
-    "statements": null,
-    "functions": null,
-    "branches": null
+    "lines": 82.79,
+    "statements": 82.79,
+    "functions": 86.9,
+    "branches": 70.67
+  },
+  "audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
   },
   "duplication": {
-    "percentage": null,
-    "fragments": null,
-    "duplicatedLines": null
+    "percentage": 0,
+    "fragments": 0,
+    "duplicatedLines": 0
   },
   "eslint": {
-    "errors": null,
-    "warnings": null,
+    "errors": 0,
+    "warnings": 0,
     "ruleViolations": {}
   },
   "files": {
     "oversizedFiles": [],
-    "maxLines": null,
-    "fileLineCounts": {}
+    "maxLines": 491,
+    "fileLineCounts": {
+      "eslint.complexity.config.cjs": 28,
+      "eslint.config.cjs": 39,
+      "quality/quality-gate.config.cjs": 125,
+      "scripts/quality/collect-audit.js": 81,
+      "scripts/quality/collect-complexity.js": 304,
+      "scripts/quality/collect-coverage.js": 129,
+      "scripts/quality/collect-duplication.js": 99,
+      "scripts/quality/collect-eslint.js": 90,
+      "scripts/quality/collect-file-metrics.js": 161,
+      "scripts/quality/compare-baseline.js": 491,
+      "scripts/quality/quality-gate.js": 211,
+      "scripts/quality/render-markdown.js": 148,
+      "scripts/quality/render-pr-comment.js": 35,
+      "scripts/quality/run-audit-report.js": 53,
+      "scripts/quality/run-complexity-report.js": 42,
+      "scripts/quality/update-baseline.js": 96,
+      "scripts/quality/utils.js": 298,
+      "scripts/quality/validate-config.js": 125,
+      "tests/integration/sync.test.js": 30,
+      "tests/quality/audit-and-validation.test.js": 139,
+      "tests/quality/collectors.test.js": 288,
+      "tests/quality/compare-baseline.test.js": 232,
+      "tests/quality/quality-gate.test.js": 72,
+      "tests/quality/render-markdown.test.js": 80,
+      "tests/quality/schema.test.js": 42,
+      "tests/quality/update-baseline.test.js": 64,
+      "tests/quality/utils.test.js": 80
+    }
   },
   "complexity": {
-    "maxDepthViolations": null,
-    "complexityViolations": null,
-    "longFunctionViolations": null
+    "maxDepthViolations": 3,
+    "complexityViolations": 17,
+    "longFunctionViolations": 0
   }
 }

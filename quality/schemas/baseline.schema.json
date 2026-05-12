@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/quality-gate/baseline.schema.json",
+  "title": "Quality Gate Baseline",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "source", "coverage", "audit", "duplication", "eslint", "files", "complexity"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatedAt": { "type": ["string", "null"] },
+    "source": { "type": "string" },
+    "coverage": { "type": "object" },
+    "audit": { "type": "object" },
+    "duplication": { "type": "object" },
+    "eslint": { "type": "object" },
+    "files": { "type": "object" },
+    "complexity": { "type": "object" }
+  }
+}

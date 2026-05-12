@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Lucas Quality Gate — entry point.
+// Quality Gate — entry point.
 //
 // Usage:
 //   node scripts/quality/quality-gate.js report
@@ -20,6 +20,7 @@ const {
   isMainLikeBranch,
 } = require("./utils");
 const { collectCoverage } = require("./collect-coverage");
+const { collectAudit } = require("./collect-audit");
 const { collectEslint } = require("./collect-eslint");
 const { collectDuplication } = require("./collect-duplication");
 const { collectFileMetrics } = require("./collect-file-metrics");
@@ -38,7 +39,7 @@ const PR_COMMENT = path.join(REPO_ROOT, "reports", "pr-comment.md");
 function loadConfig() {
   if (!fileExists(CONFIG_PATH)) {
     console.error(`quality-gate: config file not found at ${CONFIG_PATH}.`);
-    console.error("Run the lucas-quality-gate skill installer or create the file manually.");
+    console.error("Run the quality-gate skill installer or create the file manually.");
     process.exit(1);
   }
   try {
@@ -55,6 +56,7 @@ function loadBaseline() {
     generatedAt: null,
     source: "missing-baseline-file",
     coverage: { lines: null, statements: null, functions: null, branches: null },
+    audit: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 },
     duplication: { percentage: null, fragments: null, duplicatedLines: null },
     eslint: { errors: null, warnings: null, ruleViolations: {} },
     files: { oversizedFiles: [], maxLines: null, fileLineCounts: {} },
@@ -63,12 +65,24 @@ function loadBaseline() {
 }
 
 function collectAll(config) {
+  const isEnabled = (section) => !config[section] || config[section].enabled !== false;
   return {
-    coverage: collectCoverage(config),
-    eslint: collectEslint(config),
-    duplication: collectDuplication(config),
-    files: collectFileMetrics(config),
-    complexity: collectComplexity(config),
+    coverage: isEnabled("coverage") ? collectCoverage(config) : { available: false, metrics: null, warnings: [] },
+    audit: isEnabled("audit")
+      ? collectAudit(config)
+      : { available: false, counts: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 }, warnings: [] },
+    eslint: isEnabled("lint")
+      ? collectEslint(config)
+      : { available: false, errors: null, warnings: null, ruleViolations: {}, topFiles: [], warningsList: [] },
+    duplication: isEnabled("duplication")
+      ? collectDuplication(config)
+      : { available: false, percentage: null, fragments: null, duplicatedLines: null, warnings: [] },
+    files: isEnabled("files")
+      ? collectFileMetrics(config)
+      : { available: false, totalFiles: 0, warnings: [] },
+    complexity: isEnabled("complexity")
+      ? collectComplexity(config)
+      : { heuristicOnly: false, maxDepthViolations: 0, complexityViolations: 0, longFunctionViolations: 0, details: [], warnings: [] },
   };
 }
 

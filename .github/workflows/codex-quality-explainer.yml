@@ -26,7 +26,8 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
-       contains(github.event.pull_request.labels.*.name, 'ai-review'))
+       contains(github.event.pull_request.labels.*.name, 'ai-review') &&
+       github.event.pull_request.head.repo.full_name == github.repository)
 
     steps:
       - name: Checkout

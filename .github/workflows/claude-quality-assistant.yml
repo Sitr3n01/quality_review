@@ -34,12 +34,37 @@ jobs:
        contains(github.event.comment.body, '@claude'))
 
     steps:
+      - name: Guard fork PRs
+        id: guard
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const setSafe = (value) => core.setOutput('safe', value ? 'true' : 'false');
+            if (context.eventName === 'workflow_dispatch') {
+              setSafe(true);
+              return;
+            }
+
+            const issue = context.payload.issue;
+            const pullRequest = context.payload.pull_request;
+            const number = pullRequest?.number || issue?.number;
+            if (!number) {
+              setSafe(false);
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const pr = await github.rest.pulls.get({ owner, repo, pull_number: number });
+            setSafe(pr.data.head.repo.full_name === `${owner}/${repo}`);
+
       - name: Checkout
+        if: steps.guard.outputs.safe == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Download quality-gate artifact (if available)
+        if: steps.guard.outputs.safe == 'true'
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
@@ -47,11 +72,12 @@ jobs:
           path: .
 
       - name: Claude Quality Assistant
+        if: steps.guard.outputs.safe == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Use the lucas-quality-gate skill to explain the quality gate result for this PR.
+            Use the quality-gate skill to explain the quality gate result for this PR.
 
             Hard rules:
             - Do not edit files.

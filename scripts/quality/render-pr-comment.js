@@ -7,7 +7,7 @@
 const path = require("path");
 const { fileExists, readText, writeText, REPO_ROOT } = require("./utils");
 
-const MARKER = "<!-- lucas-quality-gate-comment -->";
+const MARKER = "<!-- quality-gate-comment -->";
 
 function buildComment(markdownBody) {
   if (markdownBody.startsWith(MARKER)) return markdownBody;
