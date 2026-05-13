@@ -59,6 +59,10 @@ module.exports = {
     mode: "ratchet",
     allowNewErrors: false,
     allowNewWarnings: false,
+    // Lint errors increasing is always blocking. Warnings are advisory by
+    // default so legacy projects with existing warning debt can adopt the
+    // gate without first paying it down. Set to "blocking" for strict mode.
+    warningIncreaseSeverity: "warning",
     eslintJsonPath: "reports/eslint/eslint.json",
     blockOnMissingReport: false,
   },
@@ -67,7 +71,17 @@ module.exports = {
     enabled: true,
     mode: "ratchet",
     allowIncrease: false,
-    maxPercentage: 3.0,
+
+    // Absolute duplication maximum is advisory by default to keep the
+    // template legacy-friendly. Ratchet (`allowIncrease: false`) still
+    // blocks increases against baseline. Set `severity: "blocking"` to
+    // refuse PRs while duplication is above the recommended ceiling.
+    maximum: {
+      enabled: true,
+      severity: "warning",
+      percentage: 3.0,
+    },
+
     jscpdJsonPaths: [
       "reports/duplication/jscpd-report.json",
       "reports/duplication/jscpd.json",

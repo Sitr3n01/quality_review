@@ -1,0 +1,222 @@
+{
+  "description": "Canonical acceptance scenarios for the legacy-friendly policy. Each entry pairs a baseline + current snapshot with the expected gate status. These scenarios pin the guiding rule: absolute thresholds are opt-in, baseline regressions block by default.",
+  "scenarios": [
+    {
+      "id": "legacy-duplication-improving-default-config",
+      "title": "Legacy project at 8% duplication, PR brings it to 7.5%, default config",
+      "config": {
+        "duplication": {
+          "enabled": true,
+          "allowIncrease": false,
+          "maximum": { "enabled": true, "severity": "warning", "percentage": 3.0 }
+        }
+      },
+      "baseline": { "duplication": { "percentage": 8.0 } },
+      "current":  { "duplication": { "available": true, "percentage": 7.5 } },
+      "expected": {
+        "status": "warning",
+        "reason": "Duplication is above recommended maximum, but improved against baseline.",
+        "findings": [
+          { "type": "duplication-improved", "severity": "info" },
+          { "type": "duplication-over-maximum", "severity": "warning" }
+        ]
+      }
+    },
+
+    {
+      "id": "legacy-duplication-regressing-default-config",
+      "title": "Legacy project at 8% duplication, PR pushes it to 8.5%, default config",
+      "config": {
+        "duplication": {
+          "enabled": true,
+          "allowIncrease": false,
+          "maximum": { "enabled": true, "severity": "warning", "percentage": 3.0 }
+        }
+      },
+      "baseline": { "duplication": { "percentage": 8.0 } },
+      "current":  { "duplication": { "available": true, "percentage": 8.5 } },
+      "expected": {
+        "status": "failed",
+        "reason": "Duplication increased against baseline. Ratchet blocks even when the maximum is configured as advisory.",
+        "findings": [
+          { "type": "duplication-increase", "severity": "blocking" },
+          { "type": "duplication-over-maximum", "severity": "warning" }
+        ]
+      }
+    },
+
+    {
+      "id": "strict-duplication-blocks-high-value",
+      "title": "Mature project with strict duplication maximum",
+      "config": {
+        "duplication": {
+          "enabled": true,
+          "allowIncrease": false,
+          "maximum": { "enabled": true, "severity": "blocking", "percentage": 3.0 }
+        }
+      },
+      "baseline": { "duplication": { "percentage": 8.0 } },
+      "current":  { "duplication": { "available": true, "percentage": 7.5 } },
+      "expected": {
+        "status": "failed",
+        "reason": "Duplication is above the blocking maximum, even though it improved against baseline.",
+        "findings": [
+          { "type": "duplication-over-maximum", "severity": "blocking" },
+          { "type": "duplication-improved", "severity": "info" }
+        ]
+      }
+    },
+
+    {
+      "id": "legacy-config-maxPercentage-backcompat",
+      "title": "Legacy config still using duplication.maxPercentage",
+      "config": {
+        "duplication": {
+          "enabled": true,
+          "allowIncrease": false,
+          "maxPercentage": 3.0
+        }
+      },
+      "baseline": { "duplication": { "percentage": 8.0 } },
+      "current":  { "duplication": { "available": true, "percentage": 7.5 } },
+      "expected": {
+        "status": "warning",
+        "reason": "Legacy maxPercentage is interpreted as a warning, not a blocker. The PR is not refused for legacy debt; only baseline regressions block.",
+        "findings": [
+          { "type": "duplication-over-maximum", "severity": "warning" },
+          { "type": "duplication-improved", "severity": "info" }
+        ]
+      }
+    },
+
+    {
+      "id": "lint-warnings-increase-default-warning-severity",
+      "title": "Legacy project, PR adds one lint warning, default severity",
+      "config": {
+        "lint": {
+          "enabled": true,
+          "allowNewErrors": false,
+          "allowNewWarnings": false,
+          "warningIncreaseSeverity": "warning"
+        }
+      },
+      "baseline": { "eslint": { "errors": 0, "warnings": 10 } },
+      "current":  { "eslint": { "available": true, "errors": 0, "warnings": 11 } },
+      "expected": {
+        "status": "warning",
+        "reason": "Lint warnings increased but warningIncreaseSeverity is warning. Lint errors increasing would still block.",
+        "findings": [
+          { "type": "lint-warnings-increase", "severity": "warning" }
+        ]
+      }
+    },
+
+    {
+      "id": "lint-warnings-increase-strict-mode",
+      "title": "Mature project, PR adds one lint warning, strict mode",
+      "config": {
+        "lint": {
+          "enabled": true,
+          "allowNewErrors": false,
+          "allowNewWarnings": false,
+          "warningIncreaseSeverity": "blocking"
+        }
+      },
+      "baseline": { "eslint": { "errors": 0, "warnings": 10 } },
+      "current":  { "eslint": { "available": true, "errors": 0, "warnings": 11 } },
+      "expected": {
+        "status": "failed",
+        "reason": "Strict mode: any warning regression blocks the PR.",
+        "findings": [
+          { "type": "lint-warnings-increase", "severity": "blocking" }
+        ]
+      }
+    },
+
+    {
+      "id": "lint-errors-always-block",
+      "title": "Lint errors increase is always blocking, regardless of mode",
+      "config": {
+        "lint": {
+          "enabled": true,
+          "allowNewErrors": false,
+          "allowNewWarnings": false,
+          "warningIncreaseSeverity": "warning"
+        }
+      },
+      "baseline": { "eslint": { "errors": 0, "warnings": 10 } },
+      "current":  { "eslint": { "available": true, "errors": 1, "warnings": 10 } },
+      "expected": {
+        "status": "failed",
+        "reason": "Lint errors signal real defects, not style debt. They are always blocking.",
+        "findings": [
+          { "type": "lint-errors-increase", "severity": "blocking" }
+        ]
+      }
+    },
+
+    {
+      "id": "legacy-oversized-file-stable",
+      "title": "Legacy 4000-line file that did not grow",
+      "config": {
+        "files": {
+          "enabled": true,
+          "blockIfOversizedFileGrows": true,
+          "maxLinesExistingFile": 1200
+        }
+      },
+      "baseline": {
+        "files": {
+          "oversizedFiles": [{ "file": "src/api.js", "lines": 4000 }],
+          "fileLineCounts": { "src/api.js": 4000 }
+        }
+      },
+      "current": {
+        "files": {
+          "available": true,
+          "oversizedFiles": [{ "file": "src/api.js", "lines": 4000, "limit": 1200 }],
+          "fileLineCounts": { "src/api.js": 4000 }
+        }
+      },
+      "expected": {
+        "status": "passed",
+        "reason": "An oversized legacy file that did not grow is informational, not blocking.",
+        "findings": [
+          { "type": "oversized-file-stable", "severity": "info" }
+        ]
+      }
+    },
+
+    {
+      "id": "legacy-oversized-file-grew",
+      "title": "Legacy 4000-line file grew to 4100 lines",
+      "config": {
+        "files": {
+          "enabled": true,
+          "blockIfOversizedFileGrows": true,
+          "maxLinesExistingFile": 1200
+        }
+      },
+      "baseline": {
+        "files": {
+          "oversizedFiles": [{ "file": "src/api.js", "lines": 4000 }],
+          "fileLineCounts": { "src/api.js": 4000 }
+        }
+      },
+      "current": {
+        "files": {
+          "available": true,
+          "oversizedFiles": [{ "file": "src/api.js", "lines": 4100, "limit": 1200 }],
+          "fileLineCounts": { "src/api.js": 4100 }
+        }
+      },
+      "expected": {
+        "status": "failed",
+        "reason": "Oversized file grew. Even legacy files cannot get bigger.",
+        "findings": [
+          { "type": "oversized-file-grew", "severity": "blocking" }
+        ]
+      }
+    }
+  ]
+}

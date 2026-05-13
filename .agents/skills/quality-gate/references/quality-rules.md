@@ -2,6 +2,16 @@
 
 This document spells out exactly how the gate decides between **passed**, **warning**, and **failed**. Every rule corresponds to a section of `quality/quality-gate.config.cjs`.
 
+The guiding principle:
+
+> **Absolute thresholds are opt-in. Baseline regressions block by default.**
+
+Ratchets (relative to `quality/baseline.json`) block by default. Absolute
+floors and ceilings (coverage minimums, duplication ceiling, lint
+warning ratchet) layer on top as opt-in warnings or blockers. This
+keeps the template legacy-friendly while still letting mature projects
+configure strict mode.
+
 ## Status determination
 
 | Condition | Status |
@@ -61,21 +71,57 @@ Config: `audit.{enabled, npmAuditJsonPath, blockLevels, warnLevels, infoLevels, 
 
 ## Duplication
 
-Config: `duplication.{enabled, allowIncrease, maxPercentage, jscpdJsonPaths, blockOnMissingReport}`.
+Config: `duplication.{enabled, allowIncrease, maximum, maxPercentage, jscpdJsonPaths, blockOnMissingReport}`.
 
-- Absolute cap: if `current.percentage > maxPercentage` → **blocking** `duplication-over-absolute-cap`.
-- Ratchet: if `current.percentage > baseline.percentage` and `allowIncrease` is false → **blocking** `duplication-increase`.
-- Improvement: emit `duplication-improved` info.
-- Missing report: behave like coverage based on `blockOnMissingReport`.
+Two **independent** policies operate on duplication:
+
+1. **Ratchet** (always on when `allowIncrease: false`) — current must not
+   exceed baseline.
+2. **Absolute maximum** (opt-in via `duplication.maximum.enabled`) —
+   current must stay at or below a configured ceiling.
+
+Detailed rules:
+
+- If the duplication report is missing → behavior follows
+  `blockOnMissingReport` (default false → warning).
+- If `current.percentage > maximum.percentage` and `maximum.enabled` is
+  true:
+  - `maximum.severity === "blocking"` → **blocking**
+    `duplication-over-maximum`.
+  - `maximum.severity === "warning"` (default) → **warning**
+    `duplication-over-maximum`.
+- If `current.percentage > baseline.percentage` and `allowIncrease` is
+  false → **blocking** `duplication-increase` (the ratchet, runs
+  regardless of the maximum policy).
+- If `current.percentage < baseline.percentage` → emit
+  `duplication-improved` info.
+- If baseline percentage is `null` → emit `duplication-no-baseline`
+  warning.
+
+The default `quality-gate.config.cjs` ships
+`duplication.maximum.enabled: true` with `severity: "warning"`, so
+projects starting above 3% duplication are not blocked by the ceiling
+— they only have to avoid regressing. Legacy configs that still use
+`maxPercentage: N` (no `maximum` object) are interpreted as `maximum:
+{ enabled: true, severity: "warning", percentage: N }`. Set
+`maximum.severity: "blocking"` (or omit the legacy field and define a
+new `maximum`) to adopt the older strict behavior.
 
 ## Lint
 
-Config: `lint.{enabled, allowNewErrors, allowNewWarnings, eslintJsonPath, blockOnMissingReport}`.
+Config: `lint.{enabled, allowNewErrors, allowNewWarnings, warningIncreaseSeverity, eslintJsonPath, blockOnMissingReport}`.
 
-- If `current.errors > baseline.errors` and `allowNewErrors` is false → **blocking** `lint-errors-increase`.
-- If `current.warnings > baseline.warnings` and `allowNewWarnings` is false → **blocking** `lint-warnings-increase`.
+- If `current.errors > baseline.errors` and `allowNewErrors` is false → **blocking** `lint-errors-increase` (errors are always blocking).
+- If `current.warnings > baseline.warnings` and `allowNewWarnings` is false:
+  - `warningIncreaseSeverity === "blocking"` → **blocking** `lint-warnings-increase`.
+  - `warningIncreaseSeverity === "warning"` (default) → **warning** `lint-warnings-increase`.
 - If errors decreased → emit `lint-errors-improved` info.
 - Missing report: behave like coverage based on `blockOnMissingReport`.
+
+The default ships `warningIncreaseSeverity: "warning"`, so a project
+with thousands of accumulated lint warnings can adopt the gate without
+the gate failing the first PR. Lint errors increasing remains
+blocking unconditionally (errors signal real defects, not style debt).
 
 ## File size
 

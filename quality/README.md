@@ -25,15 +25,27 @@ npm run test:coverage:ci   # run tests with coverage thresholds
 
 The project may not be perfect today, but new PRs should not make it worse.
 
-This gate uses **ratchet rules**:
+The guiding rule is:
 
-- coverage must not decrease versus baseline;
-- coverage must meet configured minimums when enabled;
-- duplication must not increase versus baseline;
-- lint violations must not increase versus baseline;
-- complexity violations must not increase versus baseline;
-- oversized files must not grow;
-- critical vulnerabilities block immediately (no baseline needed).
+> **Absolute thresholds are opt-in. Baseline regressions block by default.**
+
+Defaults (legacy-friendly):
+
+- coverage must not decrease versus baseline (ratchet) — **blocking**;
+- duplication must not increase versus baseline (ratchet) — **blocking**;
+- lint **errors** must not increase versus baseline — **blocking**;
+- complexity violations must not increase versus baseline — **blocking**;
+- oversized files must not grow — **blocking**;
+- new files exceeding `maxLinesNewFile` — **blocking**;
+- critical vulnerabilities block immediately (no baseline needed) — **blocking**.
+
+Opt-in absolutes:
+
+- coverage absolute minimums (`coverage.minimums.enabled`) — default off;
+- duplication absolute maximum (`duplication.maximum.enabled`) — default
+  on with `severity: "warning"`; set to `"blocking"` for strict mode;
+- lint **warning** increase severity (`lint.warningIncreaseSeverity`) —
+  default `"warning"`; set to `"blocking"` for strict mode.
 
 Improvements are always free. Only regressions block.
 

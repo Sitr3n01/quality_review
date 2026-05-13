@@ -136,12 +136,13 @@ Block on:
 
 - install failure
 - test failure
-- lint failure (errors)
+- lint error increase (errors are always blocking)
 - critical vulnerability
 - coverage decrease vs baseline
-- duplication increase vs baseline (or above absolute cap)
+- duplication increase vs baseline (ratchet)
 - new file exceeding `maxLinesNewFile`
 - existing oversized file growing
+- complexity violations increase (when `blockOnRegression: true`)
 - `quality:check` exit code 1
 
 ## Warning by default
@@ -149,8 +150,11 @@ Block on:
 Warn on:
 
 - high or moderate vulnerability
-- coverage low but improved
-- duplication high but not increased
+- coverage low but improved (when `minimums` is off)
+- duplication above the configured maximum (when `maximum.severity:
+  "warning"`, the default)
+- lint warnings increase (when `warningIncreaseSeverity: "warning"`,
+  the default)
 - file near size limit
 - large PR
 - baseline missing
@@ -173,13 +177,35 @@ npm run test:integration           # run repo integration tests
 npm run test:coverage:ci           # run tests with coverage thresholds
 ```
 
-## Coverage policy
+## Acceptance policy
 
-The default policy is **ratchet-first and legacy-friendly**:
+The default policy is **ratchet-first and legacy-friendly** across every
+category. The rule:
 
-- coverage may start low;
-- coverage must not decrease against the committed `baseline.json`;
-- absolute minimums (e.g. 80/80/80/70) are **opt-in** via `coverage.minimums.enabled`.
+> Absolute thresholds are opt-in. Baseline regressions block by default.
+
+A legacy project can adopt the gate even with low coverage, high
+duplication, large files, and accumulated lint debt — as long as no PR
+makes the accepted state worse. The ratchet (`allowDecrease` /
+`allowIncrease`) blocks every regression. Absolute floors and ceilings
+layer on top as opt-in warnings or blockers.
+
+| Signal | Default |
+|---|---|
+| Coverage decrease against baseline | Blocking |
+| Duplication increase against baseline | Blocking |
+| Lint errors increase against baseline | Blocking |
+| Existing oversized file grew | Blocking |
+| New file exceeds `maxLinesNewFile` | Blocking |
+| Critical vulnerability | Blocking |
+| Coverage below configured minimum | Off (opt-in via `coverage.minimums`) |
+| Duplication above configured maximum | Warning (opt-in blocking via `duplication.maximum`) |
+| Lint warnings increase against baseline | Warning (opt-in blocking via `lint.warningIncreaseSeverity`) |
+| Missing optional report | Warning |
+| Baseline missing for a metric | Warning |
+| Oversized legacy file did not grow | Info |
+
+### Coverage
 
 Strict mode (block PRs that drop below the absolute floor):
 
@@ -224,6 +250,44 @@ coverage: {
 Ratchet (`allowDecrease: false`) is independent of `minimums.enabled` and
 remains active in every mode. A PR that decreases coverage is always
 blocking, even when minimums are off.
+
+### Duplication
+
+```js
+duplication: {
+  enabled: true,
+  mode: "ratchet",
+  allowIncrease: false,
+  maximum: {
+    enabled: true,
+    severity: "warning",     // "warning" (default) or "blocking"
+    percentage: 3.0,
+  },
+}
+```
+
+Ratchet (`allowIncrease: false`) blocks duplication increases against
+baseline regardless of the maximum policy. The maximum compares the
+current value to a recommended ceiling and emits either a warning
+(advisory) or a blocking regression (strict).
+
+The legacy field `duplication.maxPercentage` is still accepted and is
+read as `maximum: { enabled: true, severity: "warning", percentage: N }`.
+
+### Lint
+
+```js
+lint: {
+  enabled: true,
+  allowNewErrors: false,
+  allowNewWarnings: false,
+  warningIncreaseSeverity: "warning",   // "warning" (default) or "blocking"
+}
+```
+
+Lint errors increasing is always blocking. Lint warnings increasing is
+advisory by default. Set `warningIncreaseSeverity: "blocking"` for
+strict mode.
 
 ## AI explainer workflows
 

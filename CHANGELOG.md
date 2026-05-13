@@ -4,6 +4,30 @@
 
 ### Changed
 
+- **Acceptance policy is now uniformly legacy-friendly.** The guiding
+  rule across every category is:
+  *Absolute thresholds are opt-in. Baseline regressions block by
+  default.*
+  Ratchets continue to block by default; absolute floors and ceilings
+  (coverage minimums, duplication ceiling, lint warning ratchet) are
+  configurable as warning or blocking.
+- Duplication acceptance is now expressed through `duplication.maximum`
+  with `{ enabled, severity, percentage }`. The default ships
+  `severity: "warning"`, so a legacy project at 8% duplication can adopt
+  the gate without immediately failing. The ratchet still blocks any
+  duplication increase against `quality/baseline.json`.
+- The legacy `duplication.maxPercentage` field is still accepted, but it
+  is now interpreted as `maximum: { enabled: true, severity:
+  "warning", percentage: N }` instead of the previous blocking
+  `duplication-over-absolute-cap`. Teams that want the previous
+  blocking behavior must opt in with `maximum.severity: "blocking"`.
+- Lint warnings increasing against baseline is advisory by default
+  (`lint.warningIncreaseSeverity: "warning"`). Lint errors increasing
+  remains blocking. Set `warningIncreaseSeverity: "blocking"` for the
+  previous strict behavior.
+- The duplication finding type emitted when current exceeds the
+  configured maximum is `duplication-over-maximum` (replaces the
+  blocking-only `duplication-over-absolute-cap`).
 - AI explainer workflows (`codex-quality-explainer.yml`,
   `claude-quality-assistant.yml`) now generate deterministic quality
   context locally in each run via `npm run quality:explainer-context`
@@ -22,6 +46,21 @@
 
 ### Added
 
+- `scripts/quality/duplication-policy.js` — a pure policy module that
+  mirrors `coverage-policy.js`. Exports `resolveDuplicationMaximumPolicy`,
+  `evaluateDuplicationMaximum`, `evaluateDuplicationRatchet`, and
+  `duplicationNoBaselineFinding`.
+- `duplication.maximum.{enabled, severity, percentage}` configuration
+  with `severity` accepting `"warning"` or `"blocking"`.
+- `lint.warningIncreaseSeverity` configuration with `"warning"` (default,
+  legacy-friendly) or `"blocking"` (strict) accepted values.
+- `tests/quality/duplication-policy.test.js` — unit tests for the
+  duplication policy module.
+- Compare-baseline tests for the new duplication maximum severity matrix
+  (disabled / warning / blocking), the legacy `maxPercentage`
+  interpretation, and lint warning severity matrix.
+- Validation tests for the new `duplication.maximum` shape and the
+  `lint.warningIncreaseSeverity` field.
 - `coverage.minimums.enabled` and `coverage.minimums.severity`
   configuration. `severity` accepts `"warning"` (advisory) or
   `"blocking"` (strict).

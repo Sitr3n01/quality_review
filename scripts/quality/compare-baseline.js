@@ -8,8 +8,12 @@ const {
   evaluateCoverageMinimum,
   evaluateCoverageRatchet,
 } = require("./coverage-policy");
-
-const EPSILON = 0.001;
+const {
+  resolveDuplicationMaximumPolicy,
+  evaluateDuplicationMaximum,
+  evaluateDuplicationRatchet,
+  duplicationNoBaselineFinding,
+} = require("./duplication-policy");
 
 function pushFinding(arr, finding) {
   arr.push(finding);
@@ -71,51 +75,21 @@ function compareDuplication(current, baseline, config, out) {
 
   const c = safeNumber(cur.percentage);
   const b = safeNumber(base.percentage);
+  const maximum = resolveDuplicationMaximumPolicy(cfg);
 
-  if (typeof cfg.maxPercentage === "number" && c !== null && c > cfg.maxPercentage + EPSILON) {
-    pushFinding(out.regressions, {
-      type: "duplication-over-absolute-cap",
-      severity: "blocking",
-      current: c,
-      limit: cfg.maxPercentage,
-      message: `Duplication is ${c.toFixed(2)}% which exceeds the absolute cap of ${cfg.maxPercentage}%.`,
-      recommendation: "Refactor duplicated fragments into shared modules.",
-    });
-  }
+  // Maximum policy is independent of the ratchet. Both can fire on the
+  // same run: e.g. duplication improved against baseline but is still
+  // above the recommended ceiling.
+  evaluateDuplicationMaximum(c, maximum, out);
 
   if (b === null) {
     if (c !== null) {
-      pushFinding(out.warnings, {
-        type: "duplication-no-baseline",
-        severity: "warning",
-        current: c,
-        message: `No duplication baseline; current is ${c.toFixed(2)}%.`,
-        recommendation: "Run `npm run quality:baseline` on main to lock in the current value.",
-      });
+      pushFinding(out.warnings, duplicationNoBaselineFinding(c));
     }
     return;
   }
 
-  if (c !== null && !cfg.allowIncrease && c > b + EPSILON) {
-    pushFinding(out.regressions, {
-      type: "duplication-increase",
-      severity: "blocking",
-      baseline: b,
-      current: c,
-      delta: Math.round((c - b) * 100) / 100,
-      message: `Duplication increased from ${b.toFixed(2)}% to ${c.toFixed(2)}%.`,
-      recommendation: "Refactor the new duplicated fragments before merging.",
-    });
-  } else if (c !== null && c < b - EPSILON) {
-    pushFinding(out.infos, {
-      type: "duplication-improved",
-      severity: "info",
-      baseline: b,
-      current: c,
-      delta: Math.round((c - b) * 100) / 100,
-      message: `Duplication improved from ${b.toFixed(2)}% to ${c.toFixed(2)}%.`,
-    });
-  }
+  evaluateDuplicationRatchet(c, b, cfg, out);
 }
 
 function compareAudit(current, config, out) {
@@ -233,14 +207,20 @@ function compareLint(current, baseline, config, out) {
   }
 
   if (baseWarnings !== null && !cfg.allowNewWarnings && curWarnings > baseWarnings) {
-    pushFinding(out.regressions, {
+    const blocking = cfg.warningIncreaseSeverity === "blocking";
+    const target = blocking ? out.regressions : out.warnings;
+    pushFinding(target, {
       type: "lint-warnings-increase",
-      severity: "blocking",
+      severity: blocking ? "blocking" : "warning",
       baseline: baseWarnings,
       current: curWarnings,
       delta: curWarnings - baseWarnings,
-      message: `Lint warnings increased from ${baseWarnings} to ${curWarnings}.`,
-      recommendation: "Fix or suppress the newly introduced lint warnings deliberately.",
+      message: blocking
+        ? `Lint warnings increased from ${baseWarnings} to ${curWarnings}.`
+        : `Lint warnings increased from ${baseWarnings} to ${curWarnings}; configured as warning for legacy adoption.`,
+      recommendation: blocking
+        ? "Fix or suppress the newly introduced lint warnings deliberately."
+        : "Fix the warnings when practical. Switch warningIncreaseSeverity to blocking for strict mode.",
     });
   }
 }
@@ -449,4 +429,8 @@ module.exports = {
   compareLint,
   compareFiles,
   compareComplexity,
+  resolveDuplicationMaximumPolicy,
+  evaluateDuplicationMaximum,
+  evaluateDuplicationRatchet,
+  duplicationNoBaselineFinding,
 };
