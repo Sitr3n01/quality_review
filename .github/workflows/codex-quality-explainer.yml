@@ -103,14 +103,14 @@ jobs:
 
       - name: Checkout PR head
         if: steps.pr_context.outputs.safe == 'true' && steps.pr_context.outputs.is_pr == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.pr_context.outputs.head_sha }}
           fetch-depth: 0
 
       - name: Checkout current ref
         if: steps.pr_context.outputs.safe == 'true' && steps.pr_context.outputs.is_pr != 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
