@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
-test("Claude and Codex skill mirrors are synchronized", { skip: process.platform === "win32" && !process.env.GITHUB_ACTIONS ? false : false }, () => {
+test("Claude and Codex skill mirrors are synchronized", () => {
   const result = spawnSync("bash", [".agents/skills/quality-gate/scripts/install-or-sync.sh"], {
     cwd: process.cwd(),
     encoding: "utf8",

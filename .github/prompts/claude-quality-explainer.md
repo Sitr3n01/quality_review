@@ -22,12 +22,27 @@ You are assisting a human reviewer after the deterministic quality gate has run.
 
 ## What to read
 
+The deterministic reports referenced below were generated in *this* workflow
+run by `npm run quality:explainer-context`. They are not artifacts from
+another workflow run. If a report is missing, assume the underlying tool
+failed in this run rather than that the gate did not execute.
+
 - `reports/quality-gate.json` (machine-readable verdict)
 - `reports/quality-gate.md` (human-readable summary)
-- `coverage/coverage-summary.json`
+- `reports/explainer/commands.ndjson` (per-command exit codes for the
+  context-generation step; consult to identify partial failures)
+- `reports/explainer/commands.json` (the same data in JSON-summary form)
+- `reports/audit/npm-audit.json`
 - `reports/eslint/eslint.json`
+- `reports/complexity/eslint-complexity.json`
 - `reports/duplication/` reports if present
+- `coverage/coverage-summary.json`
 - changed files in the PR (via `git diff`)
+
+If `reports/explainer/commands.ndjson` exists, surface which deterministic
+commands failed while the explainer context was being prepared. Do **not**
+use those failures to justify weakening checks, lowering thresholds, or
+updating the baseline.
 
 ## What to produce
 

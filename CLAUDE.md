@@ -39,17 +39,36 @@ its description.
 ## Useful commands
 
 ```
-npm run quality:report     # collect + write reports (never fails)
-npm run quality:check      # collect + compare vs baseline (exits 1 on blocking regression)
-npm run quality:baseline   # rewrite baseline.json (use on main only)
-npm run quality:comment    # render the PR comment file
-npm run quality:validate   # validate gate config and required scripts
-npm run audit:report       # write npm audit JSON report
-npm run complexity:ci      # write ESLint complexity JSON report
-npm run test:quality       # unit tests for the quality scripts
-npm run test:integration   # integration tests for repo wiring
-npm run test:coverage:ci   # tests plus coverage thresholds
+npm run quality:report             # collect + write reports (never fails)
+npm run quality:check              # collect + compare vs baseline (exits 1 on blocking regression)
+npm run quality:baseline           # rewrite baseline.json (use on main only)
+npm run quality:comment            # render the PR comment file
+npm run quality:validate           # validate gate config and required scripts
+npm run quality:explainer-context  # local deterministic context for AI explainers
+npm run audit:report               # write npm audit JSON report
+npm run complexity:ci              # write ESLint complexity JSON report
+npm run test:quality               # unit tests for the quality scripts
+npm run test:integration           # integration tests for repo wiring
+npm run test:coverage:ci           # tests plus coverage thresholds
 ```
+
+## AI explainer workflows
+
+The Codex and Claude explainer workflows must generate fresh
+deterministic quality reports in their own run before invoking AI. Do
+not rely on artifacts from another workflow run unless using a
+deliberate `workflow_run` implementation. The shipped workflows call
+`npm run quality:explainer-context`, which writes
+`reports/explainer/commands.ndjson` plus the standard reports.
+
+## Coverage policy
+
+The default quality gate is **ratchet-first and legacy-friendly**.
+Absolute coverage minimums are opt-in through
+`coverage.minimums.enabled` with `severity: "warning"` (advisory) or
+`severity: "blocking"` (strict). Ratchet (`allowDecrease: false`) still
+applies in every mode — coverage must not drop against
+`quality/baseline.json`.
 
 ## Mirroring with the Codex skill
 

@@ -1,6 +1,13 @@
 // Apply ratchet and absolute rules to produce the final gate verdict.
 
 const { safeNumber } = require("./utils");
+const {
+  resolveMinimumsPolicy,
+  coverageMetricMissingFinding,
+  coverageNoBaselineFinding,
+  evaluateCoverageMinimum,
+  evaluateCoverageRatchet,
+} = require("./coverage-policy");
 
 const EPSILON = 0.001;
 
@@ -14,7 +21,7 @@ function compareCoverage(current, baseline, config, out) {
   const cur = current.coverage || {};
   const base = baseline.coverage || {};
   const metrics = cfg.metrics || ["lines", "statements", "functions", "branches"];
-  const minimums = cfg.minimums || {};
+  const minimums = resolveMinimumsPolicy(cfg);
   const minDelta = typeof cfg.minimumDeltaToReport === "number" ? cfg.minimumDeltaToReport : 0.01;
 
   if (!cur.available) {
@@ -26,7 +33,6 @@ function compareCoverage(current, baseline, config, out) {
         recommendation: "Run the test runner with coverage enabled.",
       });
     }
-    // else: collector already surfaced a warning with a recommendation.
     return;
   }
 
@@ -34,59 +40,15 @@ function compareCoverage(current, baseline, config, out) {
     const c = safeNumber(cur.metrics ? cur.metrics[metric] : null);
     const b = safeNumber(base[metric]);
     if (c === null) {
-      pushFinding(out.warnings, {
-        type: "coverage-metric-missing",
-        severity: "warning",
-        metric,
-        message: `Coverage metric ${metric} is missing from the current report.`,
-      });
+      pushFinding(out.warnings, coverageMetricMissingFinding(metric));
       continue;
     }
+    evaluateCoverageMinimum(metric, c, minimums, out);
     if (b === null) {
-      pushFinding(out.warnings, {
-        type: "coverage-no-baseline",
-        severity: "warning",
-        metric,
-        current: c,
-        message: `No baseline for coverage.${metric}; current is ${c.toFixed(2)}%.`,
-        recommendation: "Run `npm run quality:baseline` on main to lock in the current value.",
-      });
+      pushFinding(out.warnings, coverageNoBaselineFinding(metric, c));
       continue;
     }
-    if (typeof minimums[metric] === "number" && c + EPSILON < minimums[metric]) {
-      pushFinding(out.regressions, {
-        type: "coverage-below-minimum",
-        severity: "blocking",
-        metric,
-        current: c,
-        minimum: minimums[metric],
-        message: `Coverage ${metric} is ${c.toFixed(2)}%, below the minimum of ${minimums[metric].toFixed(2)}%.`,
-        recommendation: "Add tests for uncovered critical paths before merging.",
-      });
-    }
-    const delta = Math.round((c - b) * 100) / 100;
-    if (!cfg.allowDecrease && c + EPSILON < b - minDelta) {
-      pushFinding(out.regressions, {
-        type: "coverage-drop",
-        severity: "blocking",
-        metric,
-        baseline: b,
-        current: c,
-        delta,
-        message: `Coverage ${metric} decreased from ${b.toFixed(2)}% to ${c.toFixed(2)}%.`,
-        recommendation: "Add tests for the changed behavior or revert the offending change.",
-      });
-    } else if (delta >= minDelta) {
-      pushFinding(out.infos, {
-        type: "coverage-improved",
-        severity: "info",
-        metric,
-        baseline: b,
-        current: c,
-        delta,
-        message: `Coverage ${metric} improved from ${b.toFixed(2)}% to ${c.toFixed(2)}%.`,
-      });
-    }
+    evaluateCoverageRatchet(metric, c, b, cfg, minDelta, out);
   }
 }
 

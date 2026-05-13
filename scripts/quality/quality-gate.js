@@ -28,7 +28,7 @@ const { collectComplexity } = require("./collect-complexity");
 const { compareBaseline } = require("./compare-baseline");
 const { renderMarkdown } = require("./render-markdown");
 const { buildBaseline } = require("./update-baseline");
-const { buildComment, MARKER: PR_COMMENT_MARKER } = require("./render-pr-comment");
+const { buildComment } = require("./render-pr-comment");
 
 const CONFIG_PATH = path.join(REPO_ROOT, "quality", "quality-gate.config.cjs");
 const BASELINE_PATH = path.join(REPO_ROOT, "quality", "baseline.json");
@@ -206,5 +206,4 @@ module.exports = {
   collectAll,
   runReport,
   runBaseline,
-  PR_COMMENT_MARKER,
 };

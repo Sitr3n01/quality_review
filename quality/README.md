@@ -17,6 +17,7 @@ npm run quality:baseline   # overwrite baseline.json with current metrics (use o
 npm run quality:validate   # validate config and required package scripts
 npm run audit:report       # write reports/audit/npm-audit.json
 npm run complexity:ci      # write reports/complexity/eslint-complexity.json
+npm run duplication:ci     # scan quality scripts and tests for duplication
 npm run test:coverage:ci   # run tests with coverage thresholds
 ```
 
@@ -27,7 +28,7 @@ The project may not be perfect today, but new PRs should not make it worse.
 This gate uses **ratchet rules**:
 
 - coverage must not decrease versus baseline;
-- coverage must meet configured minimums when present;
+- coverage must meet configured minimums when enabled;
 - duplication must not increase versus baseline;
 - lint violations must not increase versus baseline;
 - complexity violations must not increase versus baseline;

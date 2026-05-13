@@ -1,9 +1,18 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
+const pkg = require("../../package.json");
 
 const { compareAudit, compareBaseline } = require("../../scripts/quality/compare-baseline");
 const { validateConfig } = require("../../scripts/quality/validate-config");
 const { buildBaseline } = require("../../scripts/quality/update-baseline");
+const {
+  coverageBaseline,
+  coverageCurrent,
+  coveragePolicy,
+  fullScriptPackage,
+  standardCoverageMinimums,
+  validationConfig,
+} = require("./helpers/quality-fixtures");
 
 test("compareAudit blocks critical vulnerabilities and warns on high/moderate", () => {
   const out = { regressions: [], warnings: [], infos: [] };
@@ -34,24 +43,21 @@ test("compareBaseline includes audit collector findings in final status", () => 
   assert.ok(result.regressions.some((finding) => finding.type === "audit-vulnerability"));
 });
 
-test("coverage minimums are blocking even without a coverage drop", () => {
+test("coverage minimums in blocking mode block even without a coverage drop", () => {
   const result = compareBaseline(
     {
-      coverage: { available: true, metrics: { lines: 79, statements: 90, functions: 90, branches: 90 }, warnings: [] },
+      ...coverageCurrent({ lines: 79, statements: 90, functions: 90, branches: 90 }),
       audit: { available: false, warnings: [] },
       eslint: { available: false, warningsList: [] },
       duplication: { available: false, warnings: [] },
       files: { available: false, warnings: [] },
       complexity: { warnings: [] },
     },
-    { coverage: { lines: 79, statements: 90, functions: 90, branches: 90 } },
-    {
-      coverage: {
-        enabled: true,
-        metrics: ["lines", "statements", "functions", "branches"],
-        minimums: { lines: 80, statements: 80, functions: 80, branches: 70 },
-      },
-    },
+    coverageBaseline({ lines: 79, statements: 90, functions: 90, branches: 90 }),
+    coveragePolicy({
+      metrics: ["lines", "statements", "functions", "branches"],
+      minimums: standardCoverageMinimums({ enabled: true, severity: "blocking" }),
+    }),
   );
   assert.equal(result.status, "failed");
   assert.ok(result.regressions.some((finding) => finding.type === "coverage-below-minimum"));
@@ -110,29 +116,47 @@ test("validateConfig catches missing scripts and malformed thresholds", () => {
   assert.ok(result.errors.some((msg) => msg.includes("quality:validate")));
 });
 
-test("validateConfig accepts the repository configuration shape", () => {
-  const result = validateConfig(
-    {
-      coverage: { enabled: true, metrics: ["lines"], coverageSummaryPaths: ["coverage.json"], minimums: { lines: 80 } },
-      audit: { enabled: true, npmAuditJsonPath: "audit.json", blockLevels: ["critical"], warnLevels: ["high"] },
-      lint: { enabled: true, eslintJsonPath: "eslint.json" },
-      duplication: { enabled: true, maxPercentage: 3, jscpdJsonPaths: ["dup.json"] },
-      files: { enabled: true, include: ["scripts/**/*.js"], exclude: ["reports/**"], warnLines: 500, maxLinesNewFile: 800, maxLinesExistingFile: 1200 },
-      complexity: { enabled: true, eslintJsonPath: "complexity.json", maxDepth: 4, maxCyclomaticComplexity: 10, maxFunctionLines: 80 },
-    },
-    {
-      scripts: {
-        "quality:report": "x",
-        "quality:check": "x",
-        "quality:baseline": "x",
-        "quality:validate": "x",
-        "test:coverage:ci": "x",
-        "audit:report": "x",
-        lint: "x",
-        "duplication:ci": "x",
-        "complexity:ci": "x",
+test("validateConfig accepts opt-in minimums in advisory or blocking mode", () => {
+  const baseScripts = fullScriptPackage();
+  const baseCoverage = (severity) =>
+    validationConfig({
+      coverage: {
+        minimums: { enabled: true, severity, lines: 80 },
       },
-    },
+    });
+
+  assert.equal(validateConfig(baseCoverage("warning"), baseScripts).valid, true);
+  assert.equal(validateConfig(baseCoverage("blocking"), baseScripts).valid, true);
+
+  const badSeverity = baseCoverage("loud");
+  const bad = validateConfig(badSeverity, baseScripts);
+  assert.equal(bad.valid, false);
+  assert.ok(bad.errors.some((msg) => msg.includes("coverage.minimums.severity")));
+});
+
+test("validateConfig allows minimums to be disabled with no per-metric values", () => {
+  const result = validateConfig(
+    validationConfig({
+      coverage: {
+        metrics: ["lines", "branches"],
+        minimums: { enabled: false, severity: "warning" },
+      },
+    }),
+    fullScriptPackage(),
   );
   assert.equal(result.valid, true);
+});
+
+test("validateConfig accepts the repository configuration shape", () => {
+  const result = validateConfig(
+    validationConfig(),
+    fullScriptPackage(),
+  );
+  assert.equal(result.valid, true);
+});
+
+test("duplication:ci scans quality scripts and tests", () => {
+  const script = pkg.scripts["duplication:ci"];
+  assert.match(script, /\bscripts\/quality\b/);
+  assert.match(script, /\btests\b/);
 });

@@ -1,15 +1,32 @@
 name: Codex Quality Explainer
 
-# Opt-in workflow: Codex reads the quality gate output and writes a prose
-# explanation as a PR comment. Read-only; cannot edit files.
+# Opt-in workflow: Codex reads deterministic quality reports generated in
+# this run and writes a prose explanation as a PR comment. The sandbox is
+# read-only; Codex cannot edit files.
 #
 # Triggers:
-#   - Manual dispatch (workflow_dispatch).
+#   - Manual dispatch (workflow_dispatch), with an optional PR number.
 #   - Label "ai-review" applied to a PR.
 #   - Synchronization of a PR that already has the "ai-review" label.
+#
+# This workflow generates its own deterministic context. It does not depend
+# on artifacts from another workflow run.
 
 on:
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Optional PR number to explain. If omitted, runs on the selected ref."
+        required: false
+        type: string
+      run_quality_context:
+        description: "Generate fresh deterministic quality reports before invoking AI."
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
   pull_request:
     types: [labeled, synchronize]
 
@@ -26,23 +43,108 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
-       contains(github.event.pull_request.labels.*.name, 'ai-review') &&
-       github.event.pull_request.head.repo.full_name == github.repository)
+       contains(github.event.pull_request.labels.*.name, 'ai-review'))
 
     steps:
-      - name: Checkout
+      - name: Resolve PR context
+        id: pr_context
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+
+            async function getPr(number) {
+              const result = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: Number(number),
+              });
+              return result.data;
+            }
+
+            let pr = null;
+
+            if (context.eventName === 'pull_request') {
+              pr = context.payload.pull_request;
+            } else if (context.eventName === 'workflow_dispatch') {
+              const inputNumber = (context.payload.inputs || {}).pr_number;
+              if (inputNumber) {
+                pr = await getPr(inputNumber);
+              }
+            }
+
+            if (!pr) {
+              core.setOutput('is_pr', 'false');
+              core.setOutput('safe', context.eventName === 'workflow_dispatch' ? 'true' : 'false');
+              core.setOutput('head_sha', '');
+              core.setOutput('head_ref', '');
+              core.setOutput('head_repo', '');
+              core.setOutput('base_ref', '');
+              core.setOutput('number', '');
+              return;
+            }
+
+            const sameRepo = pr.head.repo.full_name === `${owner}/${repo}`;
+
+            core.setOutput('is_pr', 'true');
+            core.setOutput('number', String(pr.number));
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('head_ref', pr.head.ref);
+            core.setOutput('head_repo', pr.head.repo.full_name);
+            core.setOutput('base_ref', pr.base.ref);
+            core.setOutput('safe', sameRepo ? 'true' : 'false');
+
+      - name: Skip unsafe fork PR
+        if: steps.pr_context.outputs.safe != 'true'
+        run: |
+          echo "Skipping Codex explainer because this PR comes from a fork."
+          echo "Secrets are not exposed to fork PRs."
+          echo "To run a Codex explanation, dispatch this workflow manually from a maintainer account."
+
+      - name: Checkout PR head
+        if: steps.pr_context.outputs.safe == 'true' && steps.pr_context.outputs.is_pr == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr_context.outputs.head_sha }}
+          fetch-depth: 0
+
+      - name: Checkout current ref
+        if: steps.pr_context.outputs.safe == 'true' && steps.pr_context.outputs.is_pr != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download quality-gate artifact (if available)
-        continue-on-error: true
-        uses: actions/download-artifact@v4
+      - name: Setup Node
+        if: steps.pr_context.outputs.safe == 'true'
+        uses: actions/setup-node@v4
         with:
-          name: quality-gate-report
-          path: .
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies deterministically
+        if: steps.pr_context.outputs.safe == 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate deterministic quality context
+        if: >
+          steps.pr_context.outputs.safe == 'true' &&
+          (github.event_name != 'workflow_dispatch' ||
+           github.event.inputs.run_quality_context != 'false')
+        run: npm run quality:explainer-context
+
+      - name: Upload generated explainer context
+        if: always() && steps.pr_context.outputs.safe == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-explainer-quality-context
+          path: |
+            reports/
+            coverage/
+          if-no-files-found: ignore
 
       - name: Run Codex quality explainer
+        if: steps.pr_context.outputs.safe == 'true'
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -52,7 +154,7 @@ jobs:
           safety-strategy: drop-sudo
 
       - name: Upload Codex output
-        if: always()
+        if: always() && steps.pr_context.outputs.safe == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: codex-quality-explainer
@@ -60,7 +162,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Comment Codex explanation on PR
-        if: github.event_name == 'pull_request'
+        if: steps.pr_context.outputs.safe == 'true' && steps.pr_context.outputs.is_pr == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -76,7 +178,7 @@ jobs:
             const raw = fs.readFileSync(path, 'utf8');
             const body = raw.startsWith(marker) ? raw : `${marker}\n\n${raw}`;
             const { owner, repo } = context.repo;
-            const issue_number = context.payload.pull_request.number;
+            const issue_number = Number('${{ steps.pr_context.outputs.number }}');
 
             const comments = await github.rest.issues.listComments({
               owner, repo, issue_number, per_page: 100,
