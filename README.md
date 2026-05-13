@@ -102,8 +102,11 @@ Then merge the `scripts` section of this repository's `package.json` into your o
     "quality:baseline":  "node scripts/quality/quality-gate.js baseline",
     "quality:comment":   "node scripts/quality/render-pr-comment.js",
     "quality:validate":  "node scripts/quality/validate-config.js",
+    "quality:explainer-context": "node scripts/quality/run-explainer-context.js",
+    "quality:hybrid-report": "node scripts/quality/hybrid-report.js",
     "audit:report":      "node scripts/quality/run-audit-report.js",
     "complexity:ci":     "node scripts/quality/run-complexity-report.js",
+    "duplication:ci":    "jscpd --config .jscpd.json --noTips scripts/quality tests",
     "test:quality":      "node tests/run-node-tests.js tests/quality",
     "test:integration":  "node tests/run-node-tests.js tests/integration"
   }
@@ -131,8 +134,11 @@ From this point on, every pull request is compared against this baseline.
 | `npm run quality:baseline` | Overwrite `quality/baseline.json` with current metrics. Warns when run from a non-main branch. | 0 |
 | `npm run quality:comment` | Render `reports/pr-comment.md` from the existing Markdown report. | 0 |
 | `npm run quality:validate` | Validate gate config, required scripts, and deterministic install inputs. | 1 if config is invalid |
+| `npm run quality:explainer-context` | Generate deterministic context for AI explainer workflows (`reports/explainer/commands.ndjson` + the standard reports). Always exits 0. | 0 |
+| `npm run quality:hybrid-report` | Write `.quality-gate/QUALITY_GATE.md`, `.quality-gate/HUMAN_SUMMARY.md`, optional HTML, and per-check logs. | 1 only with `-- --enforce` on a failed gate |
 | `npm run audit:report` | Write `reports/audit/npm-audit.json` from `npm audit --json`. | 0 if report is written |
 | `npm run complexity:ci` | Write `reports/complexity/eslint-complexity.json` using ESLint AST rules. | 0 if report is written |
+| `npm run duplication:ci` | Write the JSCPD duplication report for quality scripts and tests. | 1 if duplication exceeds the configured threshold |
 | `npm run test:quality` | Run unit tests for the quality scripts (`node:test`). | 0 if all tests pass |
 | `npm run test:integration` | Run repository integration checks, including skill mirror validation. | 0 if all tests pass |
 | `npm run test:coverage:ci` | Run all tests with coverage thresholds: 80/80/80/70. | 1 if tests or thresholds fail |
@@ -143,8 +149,8 @@ The four shipped workflows live under `.github/workflows/`:
 
 - `ci.yml` runs on every pull request and push to `main`/`master`/`develop` across Node 18.18, 20, and 22. It installs dependencies deterministically (`npm ci`), validates config, runs audit/lint/complexity/duplication, and enforces coverage thresholds.
 - `quality-gate.yml` runs on every pull request. It generates audit, ESLint, coverage, duplication, and complexity reports; runs the deterministic gate; posts a sticky comment; uploads artifacts; and fails the job if any blocking regression is found.
-- `codex-quality-explainer.yml` is opt-in. It runs when the `ai-review` label is applied to a PR or when manually dispatched. Codex reads the gate output and posts a narrative explanation. The sandbox is read-only and Codex cannot edit files.
-- `claude-quality-assistant.yml` is opt-in. It responds to comments mentioning `@claude` or to manual dispatch. The prompt forbids edits, approvals, baseline updates, and any weakening of the checks.
+- `codex-quality-explainer.yml` is opt-in. It runs when the `ai-review` label is applied to a PR or when manually dispatched (with an optional `pr_number` input). The workflow generates its own deterministic quality context in each run via `npm run quality:explainer-context` instead of depending on artifacts from a sibling workflow, then invokes Codex in read-only sandbox mode.
+- `claude-quality-assistant.yml` is opt-in. It responds to comments mentioning `@claude`, to PR review comments, or to manual dispatch (with an optional `pr_number` input). It also generates its own deterministic context in each run. The prompt forbids edits, approvals, baseline updates, and any weakening of the checks.
 
 Secrets are required only for the AI explainers:
 
@@ -182,7 +188,7 @@ The `quality:baseline` command warns when the current branch is not `main`, `mas
 │   ├── quality-gate.config.cjs          Thresholds and ratchet rules
 │   ├── baseline.json                    Versioned accepted state of main
 │   └── README.md
-├── scripts/quality/                     11 CommonJS modules, zero external deps
+├── scripts/quality/                     CommonJS quality-gate modules, zero runtime deps
 ├── tests/quality/                       node:test unit tests
 ├── reports/                             Generated JSON and Markdown (gitignored)
 ├── AGENTS.md                            Shared agent working rules
@@ -204,6 +210,71 @@ Machine-readable shapes are published in `quality/schemas/`:
 - `quality/schemas/quality-gate-report.schema.json`
 
 Both files are designed to be edited deliberately. AI agents are forbidden by the shipped prompts from modifying either file to make a failing PR pass.
+
+## Legacy-friendly coverage policy
+
+By default, Quality Gate uses **ratchet** coverage:
+
+- if the project starts at 20% coverage, a PR must not reduce it;
+- a PR improving coverage from 20% to 22% passes the coverage ratchet;
+- absolute minimums such as 80/80/80/70 are **opt-in**.
+
+To enable advisory minimums (warning, never blocking):
+
+```js
+coverage: {
+  minimums: {
+    enabled: true,
+    severity: "warning",
+    lines: 80,
+    statements: 80,
+    functions: 80,
+    branches: 70,
+  },
+}
+```
+
+To enable blocking strict minimums:
+
+```js
+coverage: {
+  minimums: {
+    enabled: true,
+    severity: "blocking",
+    lines: 80,
+    statements: 80,
+    functions: 80,
+    branches: 70,
+  },
+}
+```
+
+Ratchet (`allowDecrease: false`) applies in every mode — a coverage drop
+against `quality/baseline.json` is always blocking, even when minimums
+are off.
+
+The canonical repository in this template still enforces its own
+absolute thresholds through `npm run test:coverage:ci` (a separate
+`c8 --check-coverage` invocation). That keeps the template's own coverage
+healthy while the shipped gate stays adoptable for legacy codebases.
+
+## AI explainer reliability
+
+The Codex and Claude explainer workflows generate fresh deterministic
+quality context locally in each run before invoking the AI model. This
+avoids relying on artifacts from a different workflow run, which may be
+unavailable for label-triggered, comment-triggered, or manually
+dispatched workflows. Each run also writes
+`reports/explainer/commands.ndjson` so the AI can see which underlying
+deterministic command failed without the workflow itself blocking.
+
+## Hybrid reports
+
+`npm run quality:hybrid-report` turns the deterministic JSON report into a
+small report bundle under `.quality-gate/`: a machine-facing Markdown
+contract, a concise human summary, per-check evidence logs, and an HTML report
+for complex or forced runs. It is additive to `quality:check`; the gate verdict
+still comes from deterministic comparison against `quality/baseline.json`.
 
 ## AI policy
 

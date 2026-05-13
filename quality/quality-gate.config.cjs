@@ -23,7 +23,15 @@ module.exports = {
     mode: "ratchet",
     allowDecrease: false,
     metrics: ["lines", "statements", "functions", "branches"],
+
+    // Absolute coverage minimums are opt-in to keep the template
+    // legacy-friendly. Set `enabled: true` to apply them, and choose
+    // `severity: "warning"` (advisory) or `severity: "blocking"` (strict).
+    // Ratchet coverage still applies regardless — coverage must not drop
+    // against the committed baseline.
     minimums: {
+      enabled: false,
+      severity: "warning",
       lines: 80,
       statements: 80,
       functions: 80,

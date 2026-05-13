@@ -31,6 +31,28 @@ function requireScript(errors, scripts, name) {
   }
 }
 
+function validateCoverageMinimums(errors, coverage) {
+  const minimums = coverage.minimums;
+  if (!minimums) return;
+  const metrics = coverage.metrics || [];
+  if (minimums.enabled === true) {
+    if (minimums.severity && !["warning", "blocking"].includes(minimums.severity)) {
+      errors.push("coverage.minimums.severity must be \"warning\" or \"blocking\".");
+    }
+    for (const metric of metrics) {
+      requireNumber(errors, minimums[metric], `coverage.minimums.${metric}`);
+    }
+    return;
+  }
+  // Minimums are opt-in. Validate any per-metric values that were
+  // provided, but do not require them: ratchet-only is a valid mode.
+  for (const metric of metrics) {
+    if (minimums[metric] !== undefined && minimums[metric] !== null) {
+      requireNumber(errors, minimums[metric], `coverage.minimums.${metric}`);
+    }
+  }
+}
+
 function validateConfig(config, pkg) {
   const errors = [];
   const warnings = [];
@@ -48,11 +70,7 @@ function validateConfig(config, pkg) {
   if (config.coverage && config.coverage.enabled !== false) {
     requireArray(errors, config.coverage.metrics, "coverage.metrics");
     requireArray(errors, config.coverage.coverageSummaryPaths, "coverage.coverageSummaryPaths");
-    if (config.coverage.minimums) {
-      for (const metric of config.coverage.metrics || []) {
-        requireNumber(errors, config.coverage.minimums[metric], `coverage.minimums.${metric}`);
-      }
-    }
+    validateCoverageMinimums(errors, config.coverage);
     requireScript(errors, scripts, "test:coverage:ci");
   }
 

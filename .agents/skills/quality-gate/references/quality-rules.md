@@ -16,15 +16,39 @@ This document spells out exactly how the gate decides between **passed**, **warn
 
 Config: `coverage.{enabled, mode, allowDecrease, metrics, minimums, minimumDeltaToReport, blockOnMissingCoverageFile}`.
 
-- For each metric in `metrics` (default: `lines, statements, functions, branches`):
-  - If baseline value is `null` → emit `coverage-no-baseline` warning.
-  - If current is null but file exists → emit `coverage-metric-missing` warning.
-  - If `minimums[metric]` is set and current is below it → **blocking** `coverage-below-minimum`.
-  - If `current < baseline - minimumDeltaToReport` and `allowDecrease` is false → **blocking** `coverage-drop`.
-  - If `current >= baseline + minimumDeltaToReport` → emit `coverage-improved` info.
-- If the coverage report file is missing:
-  - `blockOnMissingCoverageFile: true` → **blocking** `coverage-missing`.
-  - `blockOnMissingCoverageFile: false` → warning surfaced by the collector.
+The gate enforces two **independent** policies on coverage:
+
+1. **Ratchet** (always on when `allowDecrease: false`) — coverage must not
+   drop against the committed baseline.
+2. **Absolute minimums** (opt-in via `coverage.minimums.enabled`) —
+   coverage must stay above a configured floor.
+
+Detailed rules, per metric in `metrics` (default:
+`lines, statements, functions, branches`):
+
+- If baseline value is `null` → emit `coverage-no-baseline` warning.
+- If current is null but report file exists → emit `coverage-metric-missing` warning.
+- If `coverage.minimums.enabled === true` **and** `minimums[metric]` is a
+  number **and** current is below it:
+  - `minimums.severity === "blocking"` → **blocking** `coverage-below-minimum`.
+  - `minimums.severity === "warning"` (default) → **warning** `coverage-below-minimum`.
+- If `current < baseline - minimumDeltaToReport` and `allowDecrease` is
+  false → **blocking** `coverage-drop` (the ratchet, runs regardless of
+  the minimums policy).
+- If `current >= baseline + minimumDeltaToReport` → emit `coverage-improved`
+  info.
+
+If the coverage report file is missing:
+
+- `blockOnMissingCoverageFile: true` → **blocking** `coverage-missing`.
+- `blockOnMissingCoverageFile: false` → warning surfaced by the collector.
+
+The default `quality-gate.config.cjs` ships with
+`coverage.minimums.enabled: false`, so projects that start below 80% are
+not blocked by the floor — they only have to avoid regressing. A legacy
+config that defines `minimums` without an `enabled` field is treated as
+**off** (opt-in). Set `enabled: true` plus `severity: "blocking"` to
+adopt the older strict behavior.
 
 ## Audit
 

@@ -160,17 +160,93 @@ Warn on:
 ## Local commands
 
 ```
-npm run quality:report     # collect + write reports, never fails
-npm run quality:check      # collect + compare vs baseline, exits 1 on blocking regression
-npm run quality:baseline   # rewrite baseline.json with current metrics (use on main only)
-npm run quality:comment    # render reports/pr-comment.md from quality-gate.md
-npm run quality:validate   # validate config and required scripts
-npm run audit:report       # write reports/audit/npm-audit.json
-npm run complexity:ci      # write reports/complexity/eslint-complexity.json
-npm run test:quality       # run unit tests for the quality scripts
-npm run test:integration   # run repo integration tests
-npm run test:coverage:ci   # run tests with coverage thresholds
+npm run quality:report             # collect + write reports, never fails
+npm run quality:check              # collect + compare vs baseline, exits 1 on blocking regression
+npm run quality:baseline           # rewrite baseline.json with current metrics (use on main only)
+npm run quality:comment            # render reports/pr-comment.md from quality-gate.md
+npm run quality:validate           # validate config and required scripts
+npm run quality:explainer-context  # generate deterministic context for AI explainers; never fails
+npm run audit:report               # write reports/audit/npm-audit.json
+npm run complexity:ci              # write reports/complexity/eslint-complexity.json
+npm run test:quality               # run unit tests for the quality scripts
+npm run test:integration           # run repo integration tests
+npm run test:coverage:ci           # run tests with coverage thresholds
 ```
+
+## Coverage policy
+
+The default policy is **ratchet-first and legacy-friendly**:
+
+- coverage may start low;
+- coverage must not decrease against the committed `baseline.json`;
+- absolute minimums (e.g. 80/80/80/70) are **opt-in** via `coverage.minimums.enabled`.
+
+Strict mode (block PRs that drop below the absolute floor):
+
+```js
+coverage: {
+  minimums: {
+    enabled: true,
+    severity: "blocking",
+    lines: 80,
+    statements: 80,
+    functions: 80,
+    branches: 70,
+  },
+}
+```
+
+Advisory mode (surface a warning, still allow merge):
+
+```js
+coverage: {
+  minimums: {
+    enabled: true,
+    severity: "warning",
+    lines: 80,
+    statements: 80,
+    functions: 80,
+    branches: 70,
+  },
+}
+```
+
+Off (ratchet only — recommended default for legacy projects adopting the gate):
+
+```js
+coverage: {
+  minimums: {
+    enabled: false,
+  },
+}
+```
+
+Ratchet (`allowDecrease: false`) is independent of `minimums.enabled` and
+remains active in every mode. A PR that decreases coverage is always
+blocking, even when minimums are off.
+
+## AI explainer workflows
+
+The Codex and Claude explainer workflows generate their own deterministic
+quality context in each run by calling `npm run quality:explainer-context`.
+They do **not** rely on artifacts from another workflow run, because they
+are triggered by labels, comments, or manual dispatch — events that may not
+share a run with `quality-gate.yml`.
+
+Both workflows:
+
+- resolve PR context (`pull_request`, `issue_comment`,
+  `pull_request_review_comment`, or `workflow_dispatch` with an optional
+  `pr_number` input);
+- check out the correct PR head SHA when running on a PR;
+- skip with a warning when the PR comes from a fork, so model API secrets
+  are never exposed;
+- run `npm ci` and `npm run quality:explainer-context` to produce
+  `reports/quality-gate.json`, `reports/quality-gate.md`,
+  `reports/explainer/commands.ndjson`, and the rest of the deterministic
+  artifacts;
+- invoke the model in read-only mode with a prompt that forbids edits,
+  approvals, baseline updates, and weakening of any check.
 
 If a command is missing, do not silently invent it. Add it to `package.json` deliberately and report what changed.
 

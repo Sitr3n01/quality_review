@@ -76,6 +76,11 @@ jobs:
         if: always()
         run: npm run quality:comment
 
+      - name: Generate hybrid report artifacts
+        if: always()
+        continue-on-error: true
+        run: npm run quality:hybrid-report
+
       - name: Write step summary
         if: always()
         run: |
@@ -138,6 +143,7 @@ jobs:
           path: |
             reports/
             coverage/
+            .quality-gate/
           if-no-files-found: ignore
 
       - name: Fail if quality gate failed

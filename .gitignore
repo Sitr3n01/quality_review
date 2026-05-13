@@ -31,6 +31,9 @@ reports/*
 reports/**/*.json
 reports/**/*.md
 
+# Quality gate hybrid output (regenerated on every run)
+.quality-gate/
+
 # Local AI tool state (not skill or rules content)
 .claude/settings.local.json
 .claude/.cache/

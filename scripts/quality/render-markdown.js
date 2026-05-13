@@ -2,6 +2,7 @@
 // Designed to be readable both as a PR comment and as a GitHub job summary.
 
 const { formatPercent, formatDelta, safeNumber } = require("./utils");
+const { typeMatchesSection } = require("./check-registry");
 
 function statusLabel(status) {
   if (status === "passed") return "Passed";
@@ -14,29 +15,15 @@ function row(label, result) {
   return `| ${label} | ${result} |`;
 }
 
-function categoryResult(report, predicate) {
+function categoryResult(report, section) {
   let blocking = 0;
   let warnings = 0;
-  for (const r of report.regressions) if (predicate(r)) blocking += 1;
-  for (const w of report.warnings) if (predicate(w)) warnings += 1;
+  for (const r of report.regressions) if (typeMatchesSection(r.type, section)) blocking += 1;
+  for (const w of report.warnings) if (typeMatchesSection(w.type, section)) warnings += 1;
   if (blocking > 0) return "Failed";
   if (warnings > 0) return "Warning";
   return "Passed";
 }
-
-function isCoverage(f) { return f && f.type && f.type.startsWith("coverage"); }
-function isAudit(f) { return f && f.type && f.type.startsWith("audit"); }
-function isDuplication(f) { return f && f.type && f.type.startsWith("duplication"); }
-function isLint(f) { return f && f.type && f.type.startsWith("lint"); }
-function isFiles(f) {
-  return f && f.type && (
-    f.type.startsWith("oversized") ||
-    f.type.startsWith("new-file") ||
-    f.type.startsWith("file") ||
-    f.type === "files-missing"
-  );
-}
-function isComplexity(f) { return f && f.type && f.type.startsWith("complexity"); }
 
 function coverageTable(report) {
   const cur = (report.current && report.current.coverage && report.current.coverage.metrics) || {};
@@ -94,12 +81,12 @@ function renderMarkdown(report) {
   lines.push(`### Summary\n`);
   lines.push("| Category | Result |");
   lines.push("|---|---|");
-  lines.push(row("Coverage", categoryResult(report, isCoverage)));
-  lines.push(row("Audit", categoryResult(report, isAudit)));
-  lines.push(row("Duplication", categoryResult(report, isDuplication)));
-  lines.push(row("Lint", categoryResult(report, isLint)));
-  lines.push(row("File size", categoryResult(report, isFiles)));
-  lines.push(row("Complexity", categoryResult(report, isComplexity)));
+  lines.push(row("Coverage", categoryResult(report, "coverage")));
+  lines.push(row("Audit", categoryResult(report, "audit")));
+  lines.push(row("Duplication", categoryResult(report, "duplication")));
+  lines.push(row("Lint", categoryResult(report, "eslint")));
+  lines.push(row("File size", categoryResult(report, "files")));
+  lines.push(row("Complexity", categoryResult(report, "complexity")));
   lines.push("");
 
   if (report.current && report.current.coverage && report.current.coverage.available) {
@@ -142,6 +129,4 @@ function renderMarkdown(report) {
 module.exports = {
   renderMarkdown,
   statusLabel,
-  coverageTable,
-  auditTable,
 };

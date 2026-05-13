@@ -13,12 +13,14 @@
     "quality:baseline": "node scripts/quality/quality-gate.js baseline",
     "quality:comment": "node scripts/quality/render-pr-comment.js",
     "quality:validate": "node scripts/quality/validate-config.js",
+    "quality:explainer-context": "node scripts/quality/run-explainer-context.js",
+    "quality:hybrid-report": "node scripts/quality/hybrid-report.js",
     "audit:report": "node scripts/quality/run-audit-report.js",
     "complexity:ci": "node scripts/quality/run-complexity-report.js",
     "test:quality": "node tests/run-node-tests.js tests/quality",
     "test:integration": "node tests/run-node-tests.js tests/integration",
     "test:coverage:ci": "c8 --all --include=scripts/quality/*.js --report-dir coverage --reporter=json-summary --reporter=text --check-coverage --lines 80 --statements 80 --functions 80 --branches 70 node tests/run-node-tests.js tests/quality tests/integration",
-    "duplication:ci": "jscpd --config .jscpd.json --noTips scripts/quality",
+    "duplication:ci": "jscpd --config .jscpd.json --noTips scripts/quality tests",
     "lint": "eslint ."
   },
   "keywords": [

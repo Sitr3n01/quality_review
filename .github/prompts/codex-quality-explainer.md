@@ -2,16 +2,30 @@
 
 You are reviewing a pull request after a deterministic quality gate has run.
 
+The deterministic reports referenced below were generated in *this* workflow
+run by `npm run quality:explainer-context`. They are not artifacts from
+another workflow run. If a report is missing, assume the underlying tool
+failed in this run rather than that the gate did not execute.
+
 ## What to read
 
 If present, read in this order:
 
 - `reports/quality-gate.json`
 - `reports/quality-gate.md`
-- `coverage/coverage-summary.json`
+- `reports/explainer/commands.ndjson`
+- `reports/explainer/commands.json`
+- `reports/audit/npm-audit.json`
 - `reports/eslint/eslint.json`
+- `reports/complexity/eslint-complexity.json`
 - `reports/duplication/`
+- `coverage/coverage-summary.json`
 - the PR diff (via `git diff origin/main...HEAD` or equivalent)
+
+If `reports/explainer/commands.ndjson` exists, use it to identify which
+deterministic commands failed while the context was being prepared. Mention
+those failures honestly in your explanation, but do **not** treat them as
+permission to weaken checks, lower thresholds, or update the baseline.
 
 ## Your role
 
