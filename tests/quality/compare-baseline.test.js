@@ -144,15 +144,80 @@ test("duplication increase is blocking", () => {
   assert.ok(r);
 });
 
-test("duplication over absolute cap is blocking even if baseline matches", () => {
+test("duplication above default maximum is a warning, not blocking", () => {
+  // Default template config now ships duplication.maximum.severity = "warning".
+  // Legacy projects can adopt the gate even when duplication exceeds the
+  // recommended ceiling. Only ratchet regressions block.
   const current = makeCurrent({
     duplication: { available: true, percentage: 5.0, fragments: 10, duplicatedLines: 200, warnings: [] },
   });
   const baseline = makeBaseline({ duplication: { percentage: 5.0, fragments: 10, duplicatedLines: 200 } });
   const result = compareBaseline(current, baseline, baseConfig);
+  assert.equal(result.status, "warning");
+  assert.equal(result.summary.blocking, 0);
+  const w = result.warnings.find((x) => x.type === "duplication-over-maximum");
+  assert.ok(w, "expected a duplication-over-maximum warning");
+  assert.equal(w.severity, "warning");
+});
+
+test("duplication maximum disabled produces no finding even when current is high", () => {
+  const cfg = cloneBaseConfig();
+  cfg.duplication.maximum = { enabled: false, severity: "warning", percentage: 3 };
+  const current = makeCurrent({
+    duplication: { available: true, percentage: 7.5, fragments: 10, duplicatedLines: 200, warnings: [] },
+  });
+  const baseline = makeBaseline({ duplication: { percentage: 8.0, fragments: 10, duplicatedLines: 200 } });
+  const result = compareBaseline(current, baseline, cfg);
+  assert.equal(result.summary.blocking, 0);
+  const over = [...result.regressions, ...result.warnings].find(
+    (f) => f.type === "duplication-over-maximum",
+  );
+  assert.ok(!over, "expected no duplication-over-maximum finding when maximum is disabled");
+  // It improved against baseline, so we expect an info, not a regression.
+  assert.ok(result.infos.some((f) => f.type === "duplication-improved"));
+});
+
+test("duplication maximum severity blocking refuses high duplication regardless of baseline", () => {
+  const cfg = cloneBaseConfig();
+  cfg.duplication.maximum = { enabled: true, severity: "blocking", percentage: 3 };
+  const current = makeCurrent({
+    duplication: { available: true, percentage: 7.5, fragments: 10, duplicatedLines: 200, warnings: [] },
+  });
+  const baseline = makeBaseline({ duplication: { percentage: 8.0, fragments: 10, duplicatedLines: 200 } });
+  const result = compareBaseline(current, baseline, cfg);
   assert.equal(result.status, "failed");
-  const r = result.regressions.find((x) => x.type === "duplication-over-absolute-cap");
+  const r = result.regressions.find((x) => x.type === "duplication-over-maximum");
   assert.ok(r);
+  assert.equal(r.severity, "blocking");
+});
+
+test("legacy maxPercentage with no maximum object is treated as warning", () => {
+  // Backward-compat: an old project config that only sets `maxPercentage`
+  // should not become blocking under the new default. It must read as a
+  // warning until the project explicitly opts into blocking.
+  const cfg = cloneBaseConfig();
+  delete cfg.duplication.maximum;
+  cfg.duplication.maxPercentage = 3.0;
+  const current = makeCurrent({
+    duplication: { available: true, percentage: 7.5, fragments: 10, duplicatedLines: 200, warnings: [] },
+  });
+  const baseline = makeBaseline({ duplication: { percentage: 8.0, fragments: 10, duplicatedLines: 200 } });
+  const result = compareBaseline(current, baseline, cfg);
+  assert.equal(result.summary.blocking, 0);
+  const w = result.warnings.find((x) => x.type === "duplication-over-maximum");
+  assert.ok(w, "legacy maxPercentage should produce a warning, not a blocking regression");
+});
+
+test("ratchet still blocks duplication increase even when maximum is disabled", () => {
+  const cfg = cloneBaseConfig();
+  cfg.duplication.maximum = { enabled: false, severity: "warning", percentage: 3 };
+  const current = makeCurrent({
+    duplication: { available: true, percentage: 8.5, fragments: 10, duplicatedLines: 200, warnings: [] },
+  });
+  const baseline = makeBaseline({ duplication: { percentage: 8.0, fragments: 10, duplicatedLines: 200 } });
+  const result = compareBaseline(current, baseline, cfg);
+  assert.equal(result.status, "failed");
+  assert.ok(result.regressions.some((f) => f.type === "duplication-increase"));
 });
 
 test("lint error increase is blocking", () => {
@@ -163,6 +228,67 @@ test("lint error increase is blocking", () => {
   assert.equal(result.status, "failed");
   const r = result.regressions.find((x) => x.type === "lint-errors-increase");
   assert.ok(r);
+});
+
+test("lint warnings increase is a warning under default warningIncreaseSeverity", () => {
+  // The default template now ships warningIncreaseSeverity = "warning". A
+  // PR that adds new lint warnings should surface but not block, so legacy
+  // projects with accumulated warning debt can adopt the gate.
+  const current = makeCurrent({
+    eslint: { available: true, errors: 0, warnings: 11, ruleViolations: {}, topFiles: [], warningsList: [] },
+  });
+  const baseline = makeBaseline({
+    eslint: { errors: 0, warnings: 10, ruleViolations: {} },
+  });
+  const result = compareBaseline(current, baseline, baseConfig);
+  assert.equal(result.summary.blocking, 0);
+  assert.equal(result.status, "warning");
+  const w = result.warnings.find((x) => x.type === "lint-warnings-increase");
+  assert.ok(w);
+  assert.equal(w.severity, "warning");
+});
+
+test("lint warnings increase is blocking when warningIncreaseSeverity is blocking", () => {
+  const cfg = cloneBaseConfig();
+  cfg.lint.warningIncreaseSeverity = "blocking";
+  const current = makeCurrent({
+    eslint: { available: true, errors: 0, warnings: 11, ruleViolations: {}, topFiles: [], warningsList: [] },
+  });
+  const baseline = makeBaseline({
+    eslint: { errors: 0, warnings: 10, ruleViolations: {} },
+  });
+  const result = compareBaseline(current, baseline, cfg);
+  assert.equal(result.status, "failed");
+  const r = result.regressions.find((x) => x.type === "lint-warnings-increase");
+  assert.ok(r);
+  assert.equal(r.severity, "blocking");
+});
+
+test("lint warnings decrease produces no regression", () => {
+  const current = makeCurrent({
+    eslint: { available: true, errors: 0, warnings: 5, ruleViolations: {}, topFiles: [], warningsList: [] },
+  });
+  const baseline = makeBaseline({
+    eslint: { errors: 0, warnings: 10, ruleViolations: {} },
+  });
+  const result = compareBaseline(current, baseline, baseConfig);
+  assert.equal(result.summary.blocking, 0);
+  assert.ok(!result.warnings.some((x) => x.type === "lint-warnings-increase"));
+});
+
+test("lint warnings increase is suppressed when allowNewWarnings is true", () => {
+  const cfg = cloneBaseConfig();
+  cfg.lint.allowNewWarnings = true;
+  const current = makeCurrent({
+    eslint: { available: true, errors: 0, warnings: 20, ruleViolations: {}, topFiles: [], warningsList: [] },
+  });
+  const baseline = makeBaseline({
+    eslint: { errors: 0, warnings: 10, ruleViolations: {} },
+  });
+  const result = compareBaseline(current, baseline, cfg);
+  assert.equal(result.summary.blocking, 0);
+  assert.ok(!result.warnings.some((x) => x.type === "lint-warnings-increase"));
+  assert.ok(!result.regressions.some((x) => x.type === "lint-warnings-increase"));
 });
 
 test("oversized file that did not grow is info, not blocking", () => {

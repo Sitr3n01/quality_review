@@ -60,13 +60,25 @@ deliberate `workflow_run` implementation. The shipped workflows call
 `npm run quality:explainer-context`, which writes
 `reports/explainer/commands.ndjson` plus the standard reports.
 
-## Coverage policy
+## Acceptance policy
 
-The default quality gate is **ratchet-first and legacy-friendly**.
-Absolute coverage minimums are opt-in through
-`coverage.minimums.enabled`. Ratchet (`allowDecrease: false`) still
-applies in every mode — a coverage drop against `baseline.json` is
-always blocking.
+The default quality gate is **ratchet-first and legacy-friendly**:
+
+> Absolute thresholds are opt-in. Baseline regressions block by default.
+
+- Coverage absolute minimums are opt-in through `coverage.minimums.enabled`.
+- Duplication absolute maximum (`duplication.maximum.enabled`, default
+  on with `severity: "warning"`) is advisory by default. Ratchet
+  (`allowIncrease: false`) still blocks any increase against baseline.
+- Lint warning increases are advisory by default
+  (`lint.warningIncreaseSeverity: "warning"`). Lint errors increasing
+  remains unconditionally blocking.
+- The legacy `duplication.maxPercentage` field is still accepted and
+  read as a warning, not a blocker.
+
+Strict mode is opt-in: set `severity: "blocking"` on coverage minimums
+and/or duplication maximum, and `warningIncreaseSeverity: "blocking"`
+on lint.
 
 ## Where to look
 

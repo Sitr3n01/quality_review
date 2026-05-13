@@ -211,7 +211,34 @@ Machine-readable shapes are published in `quality/schemas/`:
 
 Both files are designed to be edited deliberately. AI agents are forbidden by the shipped prompts from modifying either file to make a failing PR pass.
 
-## Legacy-friendly coverage policy
+## Legacy-friendly acceptance policy
+
+The Quality Gate uses a single, consistent rule:
+
+> **Absolute thresholds are opt-in. Baseline regressions block by default.**
+
+A legacy project can adopt the gate even with low coverage, high
+duplication, large files, and accumulated lint debt — as long as no PR
+makes the accepted state worse. This is the ratchet. Absolute floors
+(80% coverage, 3% duplication ceiling, etc.) layer on top as **opt-in**
+warnings or blockers.
+
+| Signal | Default |
+|---|---|
+| Coverage decrease against baseline | **Blocking** |
+| Duplication increase against baseline | **Blocking** |
+| Lint errors increase against baseline | **Blocking** |
+| Existing oversized file grew | **Blocking** |
+| New file exceeds `maxLinesNewFile` | **Blocking** |
+| Critical vulnerability | **Blocking** |
+| Coverage below 80/80/80/70 | Off (opt-in) |
+| Duplication above 3% ceiling | Warning (opt-in blocking) |
+| Lint warnings increase against baseline | Warning (opt-in blocking) |
+| Missing optional report | Warning |
+| Baseline missing for a metric | Warning |
+| Oversized legacy file did not grow | Info |
+
+### Coverage
 
 By default, Quality Gate uses **ratchet** coverage:
 
@@ -253,10 +280,93 @@ Ratchet (`allowDecrease: false`) applies in every mode — a coverage drop
 against `quality/baseline.json` is always blocking, even when minimums
 are off.
 
+### Duplication
+
+Duplication follows the same ratchet-first shape as coverage:
+
+```js
+duplication: {
+  enabled: true,
+  mode: "ratchet",
+  allowIncrease: false,
+
+  maximum: {
+    enabled: true,
+    severity: "warning",    // "warning" (advisory) or "blocking" (strict)
+    percentage: 3.0,
+  },
+
+  jscpdJsonPaths: [
+    "reports/duplication/jscpd-report.json",
+    "reports/duplication/jscpd.json",
+  ],
+  blockOnMissingReport: false,
+}
+```
+
+Behavior:
+
+- a PR that **increases** duplication against `baseline.percentage` is
+  always **blocking** when `allowIncrease: false` (the ratchet);
+- duplication above `maximum.percentage` is a **warning** by default —
+  legacy projects starting at 8% duplication can adopt the gate without
+  the gate immediately failing them;
+- set `maximum.severity: "blocking"` to enforce a strict ceiling
+  regardless of baseline (mature projects, clean rooms, libraries);
+- set `maximum.enabled: false` to disable the ceiling and rely on
+  ratchet alone.
+
+**Backward compatibility.** Configs that still use the legacy field
+`maxPercentage: N` are interpreted as `maximum: { enabled: true,
+severity: "warning", percentage: N }`. The legacy field no longer
+blocks by default. To opt back into the older strict behavior, define
+`maximum` explicitly with `severity: "blocking"`.
+
+### Lint warnings
+
+Lint **errors** increasing against baseline is always blocking. Lint
+**warnings** increasing is advisory by default, configurable per project:
+
+```js
+lint: {
+  enabled: true,
+  mode: "ratchet",
+  allowNewErrors: false,
+  allowNewWarnings: false,
+  warningIncreaseSeverity: "warning",   // "warning" (default) or "blocking"
+  eslintJsonPath: "reports/eslint/eslint.json",
+}
+```
+
+Behavior:
+
+- `allowNewErrors: false` + new errors → **blocking** `lint-errors-increase`;
+- `allowNewWarnings: false` + new warnings + `warningIncreaseSeverity:
+  "warning"` → **warning** `lint-warnings-increase`;
+- `allowNewWarnings: false` + new warnings + `warningIncreaseSeverity:
+  "blocking"` → **blocking** `lint-warnings-increase`;
+- `allowNewWarnings: true` → no warning, no block (the team accepts
+  unrestricted warning drift).
+
+### Strict mode
+
+Mature projects, libraries, or compliance-driven codebases can opt into
+strict mode by tightening the configuration:
+
+```js
+coverage:    { minimums: { enabled: true, severity: "blocking", lines: 80, statements: 80, functions: 80, branches: 70 } },
+duplication: { maximum:  { enabled: true, severity: "blocking", percentage: 3 } },
+lint:        { warningIncreaseSeverity: "blocking" },
+```
+
+Strict mode does not weaken the ratchets — it adds absolute floors and
+ceilings on top of them.
+
 The canonical repository in this template still enforces its own
 absolute thresholds through `npm run test:coverage:ci` (a separate
-`c8 --check-coverage` invocation). That keeps the template's own coverage
-healthy while the shipped gate stays adoptable for legacy codebases.
+`c8 --check-coverage` invocation). That keeps the template's own
+coverage healthy while the shipped gate stays adoptable for legacy
+codebases.
 
 ## AI explainer reliability
 

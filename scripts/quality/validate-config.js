@@ -53,6 +53,34 @@ function validateCoverageMinimums(errors, coverage) {
   }
 }
 
+function validateDuplication(errors, duplication) {
+  const explicit = duplication.maximum;
+  if (explicit && typeof explicit === "object") {
+    if (explicit.severity && !["warning", "blocking"].includes(explicit.severity)) {
+      errors.push("duplication.maximum.severity must be \"warning\" or \"blocking\".");
+    }
+    if (explicit.enabled === true) {
+      requireNumber(errors, explicit.percentage, "duplication.maximum.percentage");
+    } else if (explicit.percentage !== undefined && explicit.percentage !== null) {
+      requireNumber(errors, explicit.percentage, "duplication.maximum.percentage");
+    }
+  } else {
+    // Legacy shape: `maxPercentage` must be a finite number.
+    requireNumber(errors, duplication.maxPercentage, "duplication.maxPercentage");
+  }
+  requireArray(errors, duplication.jscpdJsonPaths, "duplication.jscpdJsonPaths");
+}
+
+function validateLint(errors, lint) {
+  if (!lint.eslintJsonPath) errors.push("lint.eslintJsonPath is required when lint is enabled.");
+  if (
+    lint.warningIncreaseSeverity !== undefined &&
+    !["warning", "blocking"].includes(lint.warningIncreaseSeverity)
+  ) {
+    errors.push("lint.warningIncreaseSeverity must be \"warning\" or \"blocking\".");
+  }
+}
+
 function validateConfig(config, pkg) {
   const errors = [];
   const warnings = [];
@@ -82,13 +110,12 @@ function validateConfig(config, pkg) {
   }
 
   if (config.lint && config.lint.enabled !== false) {
-    if (!config.lint.eslintJsonPath) errors.push("lint.eslintJsonPath is required when lint is enabled.");
+    validateLint(errors, config.lint);
     requireScript(errors, scripts, "lint");
   }
 
   if (config.duplication && config.duplication.enabled !== false) {
-    requireNumber(errors, config.duplication.maxPercentage, "duplication.maxPercentage");
-    requireArray(errors, config.duplication.jscpdJsonPaths, "duplication.jscpdJsonPaths");
+    validateDuplication(errors, config.duplication);
     requireScript(errors, scripts, "duplication:ci");
   }
 
@@ -138,5 +165,7 @@ if (require.main === module) {
 
 module.exports = {
   validateConfig,
+  validateDuplication,
+  validateLint,
   loadConfigForValidation,
 };

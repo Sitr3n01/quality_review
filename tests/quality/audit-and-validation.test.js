@@ -63,7 +63,11 @@ test("coverage minimums in blocking mode block even without a coverage drop", ()
   assert.ok(result.regressions.some((finding) => finding.type === "coverage-below-minimum"));
 });
 
-test("lint warning increase and complexity warning mode are reported", () => {
+test("lint warning increase (strict mode) and complexity warning mode are reported", () => {
+  // Strict mode for lint warnings is opt-in via warningIncreaseSeverity =
+  // "blocking". This test preserves the original intent: when strict mode
+  // is on, new warnings block. Complexity regressions with
+  // blockOnRegression=false remain warnings.
   const result = compareBaseline(
     {
       coverage: { available: false, warnings: [] },
@@ -78,7 +82,12 @@ test("lint warning increase and complexity warning mode are reported", () => {
       complexity: { maxDepthViolations: 1, complexityViolations: 0, longFunctionViolations: 0 },
     },
     {
-      lint: { enabled: true, allowNewErrors: false, allowNewWarnings: false },
+      lint: {
+        enabled: true,
+        allowNewErrors: false,
+        allowNewWarnings: false,
+        warningIncreaseSeverity: "blocking",
+      },
       complexity: { enabled: true, blockOnRegression: false },
     },
   );
@@ -153,6 +162,88 @@ test("validateConfig accepts the repository configuration shape", () => {
     fullScriptPackage(),
   );
   assert.equal(result.valid, true);
+});
+
+test("validateConfig accepts the new duplication.maximum object", () => {
+  const cfg = validationConfig({
+    duplication: {
+      enabled: true,
+      jscpdJsonPaths: ["dup.json"],
+      maximum: { enabled: true, severity: "warning", percentage: 3 },
+    },
+  });
+  // Delete legacy field so we exercise the new path only.
+  delete cfg.duplication.maxPercentage;
+  const result = validateConfig(cfg, fullScriptPackage());
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
+
+test("validateConfig flags invalid duplication.maximum.severity", () => {
+  const cfg = validationConfig({
+    duplication: {
+      enabled: true,
+      jscpdJsonPaths: ["dup.json"],
+      maximum: { enabled: true, severity: "loud", percentage: 3 },
+    },
+  });
+  delete cfg.duplication.maxPercentage;
+  const result = validateConfig(cfg, fullScriptPackage());
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((m) => m.includes("duplication.maximum.severity")));
+});
+
+test("validateConfig requires duplication.maximum.percentage when enabled", () => {
+  const cfg = validationConfig({
+    duplication: {
+      enabled: true,
+      jscpdJsonPaths: ["dup.json"],
+      maximum: { enabled: true, severity: "warning" },
+    },
+  });
+  delete cfg.duplication.maxPercentage;
+  const result = validateConfig(cfg, fullScriptPackage());
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((m) => m.includes("duplication.maximum.percentage")));
+});
+
+test("validateConfig allows duplication.maximum disabled with no percentage", () => {
+  const cfg = validationConfig({
+    duplication: {
+      enabled: true,
+      jscpdJsonPaths: ["dup.json"],
+      maximum: { enabled: false, severity: "warning" },
+    },
+  });
+  delete cfg.duplication.maxPercentage;
+  const result = validateConfig(cfg, fullScriptPackage());
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+});
+
+test("validateConfig flags invalid lint.warningIncreaseSeverity", () => {
+  const cfg = validationConfig({
+    lint: {
+      enabled: true,
+      eslintJsonPath: "eslint.json",
+      warningIncreaseSeverity: "loud",
+    },
+  });
+  const result = validateConfig(cfg, fullScriptPackage());
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((m) => m.includes("lint.warningIncreaseSeverity")));
+});
+
+test("validateConfig accepts lint.warningIncreaseSeverity warning or blocking", () => {
+  for (const severity of ["warning", "blocking"]) {
+    const cfg = validationConfig({
+      lint: {
+        enabled: true,
+        eslintJsonPath: "eslint.json",
+        warningIncreaseSeverity: severity,
+      },
+    });
+    const result = validateConfig(cfg, fullScriptPackage());
+    assert.equal(result.valid, true, `expected ${severity} to validate: ${JSON.stringify(result.errors)}`);
+  }
 });
 
 test("duplication:ci scans quality scripts and tests", () => {
