@@ -94,6 +94,7 @@ function validateConfig(config, pkg) {
   requireScript(errors, scripts, "quality:check");
   requireScript(errors, scripts, "quality:baseline");
   requireScript(errors, scripts, "quality:validate");
+  requireScript(errors, scripts, "quality:preflight");
 
   if (config.coverage && config.coverage.enabled !== false) {
     requireArray(errors, config.coverage.metrics, "coverage.metrics");

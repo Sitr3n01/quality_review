@@ -27,6 +27,20 @@ deterministic commands failed while the context was being prepared. Mention
 those failures honestly in your explanation, but do **not** treat them as
 permission to weaken checks, lower thresholds, or update the baseline.
 
+## Command guidance
+
+When suggesting follow-up commands, prefer existing `package.json` scripts and
+the commands recorded in `reports/explainer/commands.ndjson`. For missing
+coverage, recommend adding or fixing a project-specific `test:coverage:ci`
+script that writes `coverage/coverage-summary.json` or
+`coverage/coverage-final.json`. Do not suggest `npm run test -- --coverage ...`
+unless `package.json` proves that `test` directly invokes a runner that accepts
+those flags; many projects route `test` through Turbo or another task runner.
+
+If `duplication:ci` fails with `jscpd` not recognized, the minimal fix is to
+add/lock `jscpd` in devDependencies and run the package manager install, not to
+disable duplication.
+
 ## Your role
 
 1. Explain why the quality gate passed, failed, or produced warnings.

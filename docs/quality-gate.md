@@ -11,6 +11,9 @@ the final judge.
 ## TL;DR
 
 ```sh
+# Local pre-GitHub readiness check (runs producers + gate).
+npm run quality:preflight
+
 # Deterministic gate (decides pass/fail; exits 1 on blocking regression).
 npm run quality:check
 
@@ -23,6 +26,9 @@ npm run quality:hybrid-report -- --html
 
 The hybrid reporter reads the existing `reports/quality-gate.json` produced
 by the deterministic gate. It does not re-run the checks; it formats them.
+The local preflight runner is the recommended agent-facing command before
+GitHub: it writes `reports/preflight/`, continues through all producers for
+visibility, and exits 1 when required setup or `quality:check` fails.
 
 ## The three artifacts
 
@@ -153,6 +159,7 @@ Exit codes:
 | --- | --- |
 | **What pass/fail means** | `scripts/quality/compare-baseline.js`, driven by `quality/quality-gate.config.cjs` and `quality/baseline.json`. |
 | **Who emits the verdict** | `npm run quality:check` (exit 1 on blocking regression). |
+| **Who verifies local readiness before GitHub** | `npm run quality:preflight` (producer checkpoints plus `quality:check`). |
 | **Who explains the verdict** | The hybrid reporter (`npm run quality:hybrid-report`) plus the AI explainer workflows. |
 | **AI authority** | None. The classifier is deterministic and `AI_OVERRIDE_ALLOWED` is always `false`. |
 
@@ -174,6 +181,7 @@ Exit codes:
 | Path | Purpose |
 | --- | --- |
 | `scripts/quality/hybrid-report.js` | CLI orchestrator. |
+| `scripts/quality/run-local-preflight.js` | Local pre-GitHub readiness runner for agents and humans. |
 | `scripts/quality/classify-complexity.js` | SIMPLE / MODERATE / COMPLEX classifier. |
 | `scripts/quality/check-registry.js` | Canonical check list, evidence paths, and finding-to-check mapping. |
 | `scripts/quality/file-risk.js` | Shared file category and risk classification. |

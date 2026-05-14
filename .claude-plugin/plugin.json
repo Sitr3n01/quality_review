@@ -20,9 +20,12 @@
     "deterministic"
   ],
   "skills": [
-    ".claude/skills",
-    ".claude/skills/quality-gate-modes"
+    "./.claude/skills",
+    "./.claude/skills/quality-gate-modes"
   ],
-  "commands": ".claude/commands",
-  "agents": ".claude/agents"
+  "commands": "./.claude/commands",
+  "agents": [
+    "./.claude/agents/quality-explainer.md",
+    "./.claude/agents/quality-fixer.md"
+  ]
 }

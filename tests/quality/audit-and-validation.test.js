@@ -123,6 +123,7 @@ test("validateConfig catches missing scripts and malformed thresholds", () => {
   assert.ok(result.errors.some((msg) => msg.includes("coverage.minimums.lines")));
   assert.ok(result.errors.some((msg) => msg.includes("duplication.maxPercentage")));
   assert.ok(result.errors.some((msg) => msg.includes("quality:validate")));
+  assert.ok(result.errors.some((msg) => msg.includes("quality:preflight")));
 });
 
 test("validateConfig accepts opt-in minimums in advisory or blocking mode", () => {

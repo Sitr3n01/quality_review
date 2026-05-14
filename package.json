@@ -14,6 +14,7 @@
     "quality:comment": "node scripts/quality/render-pr-comment.js",
     "quality:validate": "node scripts/quality/validate-config.js",
     "quality:explainer-context": "node scripts/quality/run-explainer-context.js",
+    "quality:preflight": "node scripts/quality/run-local-preflight.js",
     "quality:hybrid-report": "node scripts/quality/hybrid-report.js",
     "audit:report": "node scripts/quality/run-audit-report.js",
     "complexity:ci": "node scripts/quality/run-complexity-report.js",

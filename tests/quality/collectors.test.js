@@ -47,6 +47,7 @@ test("coverage collector warns for missing or invalid reports", () => {
   const result = collectCoverage({ coverage: { coverageSummaryPaths: ["missing/coverage.json"] } });
   assert.equal(result.available, false);
   assert.match(result.warnings[0].message, /No coverage report/);
+  assert.match(result.warnings[0].recommendation, /test:coverage:ci/);
 });
 
 test("coverage collector reports invalid and unrecognized coverage files", () => {
@@ -143,6 +144,7 @@ test("duplication collector handles old, flat, missing, and malformed shapes", (
   const result = collectDuplication({ duplication: { jscpdJsonPaths: ["missing/duplication.json"] } });
   assert.equal(result.available, false);
   assert.match(result.warnings[0].message, /No duplication report/);
+  assert.match(result.warnings[0].recommendation, /jscpd/);
 });
 
 test("audit collector handles npm audit metadata shape", () => {

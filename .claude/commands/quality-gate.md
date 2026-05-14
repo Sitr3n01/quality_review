@@ -16,7 +16,7 @@ sequentially (custom-provider terminal like DeepSeek/OpenRouter).
 After detection, choose the mode that matches the user's request:
 
 - **Install** — set up the gate in this repo.
-- **Check** — run `npm run quality:check` and report.
+- **Check** — run `npm run quality:preflight` locally, then report.
 - **Explain** — read `reports/quality-gate.json` and explain the verdict.
 - **Fix** — minimal patch to make the gate legitimately pass.
 - **Baseline** — only on `main`, with explicit user confirmation.

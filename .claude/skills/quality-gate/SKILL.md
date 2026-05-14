@@ -99,6 +99,15 @@ Return:
 
 Do **not** suggest updating the baseline to hide the regression.
 
+For missing collector reports, recommend repo-defined producer scripts first:
+`npm run test:coverage:ci`, `npm run audit:report`, `npm run lint`,
+`npm run duplication:ci`, and `npm run complexity:ci`. Inspect
+`package.json` before suggesting raw runner flags. Do not suggest
+`npm run test -- --coverage ...` unless the `test` script directly invokes a
+runner that accepts those flags; Turbo and similar task runners usually do
+not. If `jscpd` is not recognized, add/lock `jscpd` in devDependencies and run
+the package manager install.
+
 ### Mode C — Fix
 
 User explicitly asks to fix. Before editing:
@@ -192,6 +201,7 @@ npm run quality:baseline           # rewrite baseline.json with current metrics 
 npm run quality:comment            # render reports/pr-comment.md from quality-gate.md
 npm run quality:validate           # validate config and required scripts
 npm run quality:explainer-context  # generate deterministic context for AI explainers; never fails
+npm run quality:preflight          # local readiness check before GitHub
 npm run audit:report               # write reports/audit/npm-audit.json
 npm run complexity:ci              # write reports/complexity/eslint-complexity.json
 npm run test:quality               # run unit tests for the quality scripts

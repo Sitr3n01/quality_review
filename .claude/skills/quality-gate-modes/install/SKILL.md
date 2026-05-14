@@ -39,8 +39,14 @@ Custom-provider terminal → work sequentially, no `Task`/`Agent`. See
    .github/prompts/codex-quality-explainer.md
    .github/prompts/claude-quality-explainer.md
    AGENTS.md / CLAUDE.md sections          (append, never overwrite)
-   package.json scripts                    (quality:report, :check, :baseline, etc.)
+   package.json scripts                    (quality:report, :check, :baseline, producer scripts)
    ```
+
+   Producer scripts must be real project commands: `test:coverage:ci` should
+   match the target test runner and write `coverage/coverage-summary.json` or
+   `coverage/coverage-final.json`; do not blindly pass coverage flags through
+   `npm run test` when `test` wraps Turbo or another task runner. Ensure
+   `jscpd` is present in devDependencies before using `duplication:ci`.
 
 4. **Seed the baseline** on `main`:
    ```
@@ -52,6 +58,7 @@ Custom-provider terminal → work sequentially, no `Task`/`Agent`. See
 5. **Smoke test**:
    ```
    npm run quality:validate
+   npm run quality:preflight
    npm run quality:report
    npm run quality:check
    ```
