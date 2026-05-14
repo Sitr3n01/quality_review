@@ -35,5 +35,6 @@ npm run duplication:ci
 npm run test:quality
 npm run test:integration
 npm run test:coverage:ci
+npm run quality:preflight
 npm run quality:check
 ```

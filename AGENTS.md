@@ -44,6 +44,7 @@ npm run quality:check              # collect + compare vs baseline
 npm run quality:baseline           # rewrite baseline.json (use on main only)
 npm run quality:validate           # validate gate config and required scripts
 npm run quality:explainer-context  # local deterministic context for AI explainers
+npm run quality:preflight          # local readiness check before GitHub
 npm run audit:report               # write npm audit JSON report
 npm run complexity:ci              # write ESLint complexity JSON report
 npm run test:quality               # unit tests for the quality scripts
@@ -59,6 +60,11 @@ not rely on artifacts from another workflow run unless using a
 deliberate `workflow_run` implementation. The shipped workflows call
 `npm run quality:explainer-context`, which writes
 `reports/explainer/commands.ndjson` plus the standard reports.
+
+Before committing or pushing from an agent workflow, prefer
+`npm run quality:preflight`. It runs the producer commands plus
+`quality:check`, writes `reports/preflight/`, and exits non-zero when the
+branch is not ready for GitHub.
 
 ## Acceptance policy
 

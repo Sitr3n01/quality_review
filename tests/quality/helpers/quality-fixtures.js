@@ -106,6 +106,7 @@ function fullScriptPackage() {
       "quality:check": "x",
       "quality:baseline": "x",
       "quality:validate": "x",
+      "quality:preflight": "x",
       "test:coverage:ci": "x",
       "audit:report": "x",
       lint: "x",

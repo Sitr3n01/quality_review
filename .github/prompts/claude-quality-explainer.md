@@ -44,6 +44,20 @@ commands failed while the explainer context was being prepared. Do **not**
 use those failures to justify weakening checks, lowering thresholds, or
 updating the baseline.
 
+## Command guidance
+
+When suggesting follow-up commands, prefer existing `package.json` scripts and
+the commands recorded in `reports/explainer/commands.ndjson`. For missing
+coverage, recommend adding or fixing a project-specific `test:coverage:ci`
+script that writes `coverage/coverage-summary.json` or
+`coverage/coverage-final.json`. Do not suggest `npm run test -- --coverage ...`
+unless `package.json` proves that `test` directly invokes a runner that accepts
+those flags; many projects route `test` through Turbo or another task runner.
+
+If `duplication:ci` fails with `jscpd` not recognized, the minimal fix is to
+add/lock `jscpd` in devDependencies and run the package manager install, not to
+disable duplication.
+
 ## What to produce
 
 A concise reply with these sections, in order:

@@ -24,38 +24,50 @@ the template, even if auto-discovery is unreliable.
 
 ## How users install Quality Gate
 
-There are three supported install routes, ordered by recommendation:
+There are four supported install routes, ordered by recommendation:
 
-1. **Claude Code plugin (preferred, zero-shell)**. The repo is both a
-   plugin and a marketplace. Users run:
+1. **Local Claude Code plugin (preferred)**. The repo is both a plugin
+   and a marketplace, and Claude Code can load it directly from the local
+   filesystem. Users run:
+   ```
+   claude plugin marketplace add "C:/Users/zegil/Documents/GitHub/quality_review" --scope user
+   claude plugin install quality-gate@quality-gate --scope user
+   ```
+   After install, the skill is available in **every project** of that
+   user (scope: user). Available namespaced slashes:
+   `/quality-gate:check`, `:install`, `:explain`, `:fix`, `:baseline`.
+   The skill is cached from the user's local checkout; OpenAI and
+   Anthropic do not host the skill files.
+
+2. **Local full install (any runtime)**. From this checkout, run:
+   ```
+   bash scripts/install-into.sh /path/to/target [--dry-run] [--force]
+   ```
+   Additive: copies the Claude and Codex skills, slash command,
+   subagents, workflows, prompts, and deterministic scripts. **Preserves**
+   an existing `quality/baseline.json` and `quality-gate.config.cjs` in
+   the target.
+
+3. **GitHub plugin source (optional)**. If users prefer GitHub as the
+   source instead of a local path:
    ```
    /plugin marketplace add Sitr3n01/quality_review
    /plugin install quality-gate@quality-gate
    /reload-plugins
    ```
-   After install, the skill is available in **every project** of that
-   user (scope: user). Available namespaced slashes:
-   `/quality-gate:check`, `:install`, `:explain`, `:fix`, `:baseline`.
 
-2. **Codex one-liner**. For OpenAI Agents SDK (no `/plugin` support):
+4. **Codex one-liner**. For OpenAI Agents SDK (no `/plugin` support):
    ```
    curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh | bash
    ```
    Drops `.agents/skills/quality-gate/` into the current project. Codex
-   auto-discovers on next session.
-
-3. **Manual scripted install (any runtime)**. Clone this repo and run:
-   ```
-   bash scripts/install-into.sh /path/to/target [--dry-run] [--force]
-   ```
-   Aditive: copies the skill, slash command, subagents, workflows,
-   prompts, and deterministic scripts. **Preserves** an existing
-   `quality/baseline.json` and `quality-gate.config.cjs` in the target.
+   auto-discovers on next session. Add `--full` to install the full
+   deterministic gate into the current project.
 
 The plugin manifest lives at `.claude-plugin/plugin.json`; the
 marketplace catalog at `.claude-plugin/marketplace.json`. Both reuse
 `.claude/skills/`, `.claude/commands/`, `.claude/agents/` via override
-fields — no file duplication.
+fields; no file duplication.
 
 ## Rules in this repository
 
@@ -83,6 +95,7 @@ npm run quality:baseline           # rewrite baseline.json (use on main only)
 npm run quality:comment            # render the PR comment file
 npm run quality:validate           # validate gate config and required scripts
 npm run quality:explainer-context  # local deterministic context for AI explainers
+npm run quality:preflight          # local readiness check before GitHub
 npm run audit:report               # write npm audit JSON report
 npm run complexity:ci              # write ESLint complexity JSON report
 npm run test:quality               # unit tests for the quality scripts
@@ -105,6 +118,10 @@ not rely on artifacts from another workflow run unless using a
 deliberate `workflow_run` implementation. The shipped workflows call
 `npm run quality:explainer-context`, which writes
 `reports/explainer/commands.ndjson` plus the standard reports.
+
+For local agent work before GitHub, prefer `npm run quality:preflight`.
+It runs the producer commands plus `quality:check`, writes
+`reports/preflight/`, and exits non-zero when the branch is not ready.
 
 ## Acceptance policy
 

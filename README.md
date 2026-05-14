@@ -43,15 +43,17 @@ The skill ships:
 
 ## Installation
 
-The fastest install is the **Claude Code plugin** — one `/plugin install`
-and the skill is available in every one of your projects, with no manual
-file copying.
+The recommended install is **local-first**. Claude Code can load this
+repository as a local plugin marketplace from your filesystem, so the skill
+does not need to be hosted by OpenAI or Anthropic. GitHub is only a convenient
+optional source.
 
-| Your runtime | One-command install |
+| Your goal | Command |
 |---|---|
-| **Claude Code** (terminal or Desktop) | `/plugin marketplace add Sitr3n01/quality_review` then `/plugin install quality-gate@quality-gate` |
-| **Codex (OpenAI Agents SDK)** | `curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh \| bash` |
-| **Any project, any runtime (full)** | `bash scripts/install-into.sh /path/to/target` after cloning this repo |
+| **Claude Code plugin from this PC** | `claude plugin marketplace add "C:/Users/zegil/Documents/GitHub/quality_review" --scope user` then `claude plugin install quality-gate@quality-gate --scope user` |
+| **Full local project install** | `bash scripts/install-into.sh /path/to/target` from this repo |
+| **Codex skill only** | `curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh \| bash` |
+| **Codex full install** | `curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh \| bash -s -- --full` |
 
 After install in any new project, seed the baseline once on `main`:
 
@@ -61,22 +63,26 @@ npm run quality:baseline
 git commit quality/baseline.json -m "chore(quality): seed baseline"
 ```
 
-### Option A: Claude Code plugin (recommended)
+### Option A: local Claude Code plugin (recommended)
 
-One-time setup that exposes the skill in **every project** without
-touching their `.claude/` directories:
+One-time setup that exposes the skill in **every project** without copying it
+into each project's `.claude/` directory. The marketplace source is your local
+checkout:
 
-```text
-/plugin marketplace add Sitr3n01/quality_review
-/plugin install quality-gate@quality-gate
-/reload-plugins
+```bash
+claude plugin marketplace add "C:/Users/zegil/Documents/GitHub/quality_review" --scope user
+claude plugin install quality-gate@quality-gate --scope user
 ```
+
+Restart Claude Code or run `/reload-plugins` after installing. The plugin is
+cached by Claude Code from your local path; the skill content is not hosted by
+OpenAI or Anthropic.
 
 Available slash commands in every project after install:
 
 | Slash | What it does |
 |---|---|
-| `/quality-gate:check` | Run `npm run quality:check` and explain the verdict |
+| `/quality-gate:check` | Run `npm run quality:preflight` locally and explain readiness |
 | `/quality-gate:install` | Set up the gate in the current repo (scripts, workflows, config) |
 | `/quality-gate:explain` | Read `reports/quality-gate.json` and explain what's blocking |
 | `/quality-gate:fix` | Apply the minimum patch that makes the gate pass legitimately |
@@ -86,11 +92,43 @@ For users who already have the skill copied into their project's
 `.claude/skills/quality-gate/` (the pre-plugin era), `/quality-gate` (no
 namespace) continues to work as a monolithic fallback.
 
-The plugin also installs two read-only subagents (`quality-explainer`,
-`quality-fixer`) for Anthropic-capable runtimes — see
+The plugin also installs two subagents (`quality-explainer`,
+`quality-fixer`) for Anthropic-capable runtimes; see
 [`.claude/agents/`](./.claude/agents) for tool surfaces and model pins.
 
-### Option B: Codex one-liner
+### Option B: full local project install
+
+If `/plugin` is unavailable, or you want the gate's files committed directly
+into the target repo, run the bundled installer from this local checkout:
+
+```bash
+bash scripts/install-into.sh /path/to/target [--dry-run] [--force]
+```
+
+The installer is **additive**:
+
+- Copies the Claude and Codex skills, slash command, subagents, GitHub
+  workflows, prompts, and deterministic scripts.
+- **Preserves** an existing `quality/quality-gate.config.cjs` and
+  `quality/baseline.json` in the target; it never overwrites project policy.
+- Prints a `package.json` snippet for you to merge.
+- Supports `--dry-run` (list-only) and `--force` (overwrite divergent files).
+
+### Option C: GitHub plugin source (optional)
+
+If you prefer to load the marketplace from your GitHub repo instead of a local
+path:
+
+```text
+/plugin marketplace add Sitr3n01/quality_review
+/plugin install quality-gate@quality-gate
+/reload-plugins
+```
+
+This still uses your repository as the source; OpenAI and Anthropic do not host
+the skill files.
+
+### Option D: Codex one-liner
 
 From inside the target project:
 
@@ -106,17 +144,30 @@ curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/script
 ```
 
 This drops `.agents/skills/quality-gate/` into the target project. Codex
-auto-discovers the skill on the next session. To also install the
-deterministic gate scripts (`npm run quality:*`), follow Option D.
+auto-discovers the skill on the next session.
 
-### Option B (alternative): Codex auto-invoke from a configured project
+To install the full deterministic gate into the current project:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh \
+  | bash -s -- --full
+```
+
+Or target an explicit path:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh \
+  | bash -s -- /path/to/target --full
+```
+
+### Option D (alternative): Codex auto-invoke from a configured project
 
 If Codex is already configured for the project and the skill files are
 present, you can also describe the task in natural language (for
 example, "run the quality gate") and Codex will use implicit invocation
 via `.agents/skills/quality-gate/agents/openai.yaml`.
 
-### Option C: via Google Antigravity
+### Option E: via Google Antigravity
 
 Open this repository as a workspace in Antigravity. The project includes shared
 agent rules in `AGENTS.md`, an Antigravity-specific entry point in `GEMINI.md`,
@@ -125,28 +176,6 @@ and a focused workspace rule in `.agent/rules/quality-gate.md`.
 Ask the agent to "run the Quality Gate" or "fix the deterministic quality gate"
 and it should use those rules before touching CI/CD, baseline, coverage,
 duplication, audit, or quality automation files.
-
-### Option D: manual / scripted install (any runtime)
-
-If `/plugin` is unavailable or you want the gate's files committed
-directly into the target repo, use the bundled installer script:
-
-```bash
-git clone https://github.com/Sitr3n01/quality_review
-cd quality_review
-bash scripts/install-into.sh /path/to/target [--dry-run] [--force]
-```
-
-The installer is **additive**:
-
-- Copies the skill, slash command, subagents, GitHub workflows, prompts,
-  and deterministic scripts.
-- **Preserves** an existing `quality/quality-gate.config.cjs` and
-  `quality/baseline.json` in the target — never overwrites project
-  policy.
-- Prints a `package.json` snippet for you to merge.
-- Supports `--dry-run` (list-only) and `--force` (overwrite divergent
-  files).
 
 For full manual control, copy the following top-level paths into your
 project instead:
@@ -162,6 +191,8 @@ project instead:
 .agent/rules/quality-gate.md
 .github/workflows/
 .github/prompts/
+.jscpd.json
+eslint.complexity.config.cjs
 quality/
 scripts/quality/
 reports/
@@ -171,7 +202,7 @@ CLAUDE.md
 GEMINI.md
 ```
 
-Then merge the `scripts` section of this repository's `package.json` into your own:
+Then merge/adapt the quality scripts into your own `package.json`:
 
 ```json
 {
@@ -182,12 +213,49 @@ Then merge the `scripts` section of this repository's `package.json` into your o
     "quality:comment":   "node scripts/quality/render-pr-comment.js",
     "quality:validate":  "node scripts/quality/validate-config.js",
     "quality:explainer-context": "node scripts/quality/run-explainer-context.js",
+    "quality:preflight": "node scripts/quality/run-local-preflight.js",
     "quality:hybrid-report": "node scripts/quality/hybrid-report.js",
     "audit:report":      "node scripts/quality/run-audit-report.js",
     "complexity:ci":     "node scripts/quality/run-complexity-report.js",
-    "duplication:ci":    "jscpd --config .jscpd.json --noTips scripts/quality tests",
-    "test:quality":      "node tests/run-node-tests.js tests/quality",
-    "test:integration":  "node tests/run-node-tests.js tests/integration"
+    "lint":              "eslint .",
+    "duplication:ci":    "jscpd --config .jscpd.json --noTips ."
+  }
+}
+```
+
+Also add a `test:coverage:ci` script that matches the target project's test
+runner and writes `coverage/coverage-summary.json` or
+`coverage/coverage-final.json`. Do not blindly pass coverage flags through
+`npm run test` when that script wraps Turbo or another task runner.
+
+Examples:
+
+```json
+{
+  "scripts": {
+    "test:coverage:ci": "vitest run --coverage --coverage.reporter=json-summary"
+  }
+}
+```
+
+```json
+{
+  "scripts": {
+    "test:coverage:ci": "jest --coverage --coverageReporters=json-summary"
+  }
+}
+```
+
+Add the deterministic tool dependencies too:
+
+```json
+{
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "c8": "10.1.3",
+    "eslint": "9.39.4",
+    "globals": "17.6.0",
+    "jscpd": "4.1.1"
   }
 }
 ```
@@ -201,6 +269,9 @@ git commit -m "chore(quality): initialize quality gate baseline"
 ```
 
 From this point on, every pull request is compared against this baseline.
+Before pushing a branch, run `npm run quality:preflight` locally to verify
+each producer and the deterministic gate with the same signals GitHub will
+consume.
 
 ## Usage
 
@@ -214,10 +285,11 @@ From this point on, every pull request is compared against this baseline.
 | `npm run quality:comment` | Render `reports/pr-comment.md` from the existing Markdown report. | 0 |
 | `npm run quality:validate` | Validate gate config, required scripts, and deterministic install inputs. | 1 if config is invalid |
 | `npm run quality:explainer-context` | Generate deterministic context for AI explainer workflows (`reports/explainer/commands.ndjson` + the standard reports). Always exits 0. | 0 |
+| `npm run quality:preflight` | Local readiness check before GitHub: runs producers plus `quality:check`, writes `reports/preflight/`, and fails on required producer or gate failure. | 1 if not ready for GitHub |
 | `npm run quality:hybrid-report` | Write `.quality-gate/QUALITY_GATE.md`, `.quality-gate/HUMAN_SUMMARY.md`, optional HTML, and per-check logs. | 1 only with `-- --enforce` on a failed gate |
 | `npm run audit:report` | Write `reports/audit/npm-audit.json` from `npm audit --json`. | 0 if report is written |
 | `npm run complexity:ci` | Write `reports/complexity/eslint-complexity.json` using ESLint AST rules. | 0 if report is written |
-| `npm run duplication:ci` | Write the JSCPD duplication report for quality scripts and tests. | 1 if duplication exceeds the configured threshold |
+| `npm run duplication:ci` | Write the JSCPD duplication report for the configured project paths. | 1 if duplication exceeds the configured threshold |
 | `npm run test:quality` | Run unit tests for the quality scripts (`node:test`). | 0 if all tests pass |
 | `npm run test:integration` | Run repository integration checks, including skill mirror validation. | 0 if all tests pass |
 | `npm run test:coverage:ci` | Run all tests with coverage thresholds: 80/80/80/70. | 1 if tests or thresholds fail |

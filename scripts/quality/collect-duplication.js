@@ -79,7 +79,8 @@ function collectDuplication(config) {
   warnings.push({
     severity: "warning",
     message: "No duplication report was found.",
-    recommendation: "Run `jscpd --reporters json --output reports/duplication .` before the gate.",
+    recommendation:
+      "Run `npm run duplication:ci` before the gate; if `jscpd` is not recognized, add it to devDependencies and run the package manager install.",
   });
 
   return {

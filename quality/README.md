@@ -15,6 +15,7 @@ npm run quality:report     # collect + write JSON/MD reports, never fails
 npm run quality:check      # collect + compare vs baseline, exits 1 on blocking regression
 npm run quality:baseline   # overwrite baseline.json with current metrics (use on main only)
 npm run quality:validate   # validate config and required package scripts
+npm run quality:preflight  # local readiness check before GitHub
 npm run audit:report       # write reports/audit/npm-audit.json
 npm run complexity:ci      # write reports/complexity/eslint-complexity.json
 npm run duplication:ci     # scan quality scripts and tests for duplication

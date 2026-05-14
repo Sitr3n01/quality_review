@@ -30,6 +30,14 @@ Custom-provider terminal → work sequentially. See
 
 If any report is missing, **say so** explicitly and recommend running `npm run quality:report` locally. Do not guess.
 
+When suggesting commands for missing reports, prefer existing `package.json`
+producer scripts. For coverage, recommend fixing or adding a real
+`test:coverage:ci` script for the project's runner; do not suggest
+`npm run test -- --coverage ...` unless `test` directly invokes a runner that
+accepts those flags. If `duplication:ci` says `jscpd` is not recognized, the
+fix is to add/lock `jscpd` in devDependencies and run the package manager
+install.
+
 ## Output format (exact)
 
 ```

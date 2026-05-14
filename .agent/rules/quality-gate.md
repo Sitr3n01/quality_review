@@ -17,6 +17,8 @@ file-size, and PR-comment tasks.
   synchronized with `bash .agents/skills/quality-gate/scripts/install-or-sync.sh`.
 - Run the relevant quality command after changing quality scripts, workflows,
   prompts, skills, schemas, or config.
+- Before sending work to GitHub, prefer `npm run quality:preflight` so local
+  producer failures are visible before CI.
 - Use `npm run quality:baseline` only as a deliberate baseline update, normally
   on `main`, never as a shortcut to hide a regression.
 

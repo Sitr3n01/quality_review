@@ -7,8 +7,8 @@
 #   bash scripts/install-into.sh /path/to/target/project [--dry-run] [--force] [--verbose]
 #
 # Behavior:
-#   - Copies the skill, slash command, subagents, GitHub workflows, prompts,
-#     and deterministic scripts from this canonical template into the target.
+#   - Copies the Claude/Codex skills, slash command, subagents, GitHub workflows,
+#     prompts, and deterministic scripts from this canonical template into the target.
 #   - Additive: never overwrites quality/baseline.json or
 #     quality/quality-gate.config.cjs when they already exist.
 #   - Reports created / updated / preserved / divergent counts.
@@ -150,47 +150,49 @@ copy_tree() {
 
 # -----------------------------------------------------------------------------
 # 1. Claude skill
-echo "[1/8] .claude/skills/quality-gate/"
+echo "[1/9] .claude/skills/quality-gate/"
 copy_tree "$SRC/.claude/skills/quality-gate" "$TARGET/.claude/skills/quality-gate"
 
 # 2. Slash command (the load-bearing fix for /quality-gate visibility)
 echo
-echo "[2/8] .claude/commands/quality-gate.md"
+echo "[2/9] .claude/commands/quality-gate.md"
 copy_file "$SRC/.claude/commands/quality-gate.md" "$TARGET/.claude/commands/quality-gate.md"
 
 # 3. Subagents (runtime-aware; only used in Anthropic-capable runtimes)
 echo
-echo "[3/8] .claude/agents/quality-*.md"
+echo "[3/9] .claude/agents/quality-*.md"
 copy_file "$SRC/.claude/agents/quality-explainer.md" "$TARGET/.claude/agents/quality-explainer.md"
 copy_file "$SRC/.claude/agents/quality-fixer.md"     "$TARGET/.claude/agents/quality-fixer.md"
 
-# 4. Codex mirror — only if target opted into .agents/
+# 4. Codex mirror
 echo
-echo "[4/8] .agents/skills/quality-gate/ (only if target has .agents/)"
-if [ -d "$TARGET/.agents" ]; then
-  copy_tree "$SRC/.agents/skills/quality-gate" "$TARGET/.agents/skills/quality-gate"
-else
-  echo "  target has no .agents/ — skipping Codex mirror"
-fi
+echo "[4/9] .agents/skills/quality-gate/"
+copy_tree "$SRC/.agents/skills/quality-gate" "$TARGET/.agents/skills/quality-gate"
 
 # 5. GitHub workflows
 echo
-echo "[5/8] .github/workflows/"
+echo "[5/9] .github/workflows/"
 copy_file "$SRC/.github/workflows/quality-gate.yml"             "$TARGET/.github/workflows/quality-gate.yml"
 copy_file "$SRC/.github/workflows/codex-quality-explainer.yml"  "$TARGET/.github/workflows/codex-quality-explainer.yml"
 copy_file "$SRC/.github/workflows/claude-quality-assistant.yml" "$TARGET/.github/workflows/claude-quality-assistant.yml"
 
 # 6. Explainer prompts
 echo
-echo "[6/8] .github/prompts/"
+echo "[6/9] .github/prompts/"
 copy_tree "$SRC/.github/prompts" "$TARGET/.github/prompts"
 
 # 7. Deterministic scripts (the brains of the gate)
 echo
-echo "[7/8] scripts/quality/"
+echo "[7/9] scripts/quality/"
 copy_tree "$SRC/scripts/quality" "$TARGET/scripts/quality"
 
-# 8. Config (PRESERVE — never overwrite project policy).
+# 8. Tool configs (PRESERVE existing project policy).
+echo
+echo "[8/9] tool configs (preserve existing)"
+copy_file "$SRC/.jscpd.json" "$TARGET/.jscpd.json" "preserve"
+copy_file "$SRC/eslint.complexity.config.cjs" "$TARGET/eslint.complexity.config.cjs" "preserve"
+
+# 9. Config (PRESERVE existing project policy).
 #
 # We deliberately do NOT copy quality/baseline.json. The template's baseline
 # contains values specific to this canonical repo (its coverage %, its file
@@ -200,13 +202,13 @@ copy_tree "$SRC/scripts/quality" "$TARGET/scripts/quality"
 # contract is that a fresh baseline starts with nulls and is populated by
 # `npm run quality:baseline` on `main` after install.
 echo
-echo "[8/8] quality/ (preserve existing config; baseline is seeded by the user later)"
+echo "[9/9] quality/ (preserve existing config; baseline is seeded by the user later)"
 copy_file "$SRC/quality/quality-gate.config.cjs" "$TARGET/quality/quality-gate.config.cjs" "preserve"
 if [ -f "$TARGET/quality/baseline.json" ]; then
   echo "  preserved (already exists): quality/baseline.json"
   PRESERVED=$((PRESERVED + 1))
 else
-  echo "  baseline.json NOT copied — run 'npm run quality:baseline' on main to seed it"
+  echo "  baseline.json NOT copied - run 'npm run quality:baseline' on main to seed it"
 fi
 
 # -----------------------------------------------------------------------------
@@ -218,12 +220,12 @@ echo "  preserved : $PRESERVED  (existing config / baseline left alone)"
 echo "  divergent : $DIVERGENT"
 
 # -----------------------------------------------------------------------------
-# package.json scripts — print snippet for manual merge.
+# package.json scripts - print snippet for manual merge.
 # We deliberately do NOT mutate the target package.json: doing it safely
 # requires a JSON parser and risks reordering / reformatting the user's file.
 if [ -f "$TARGET/package.json" ]; then
   echo
-  echo "package.json detected. Add these entries to \"scripts\" (preserving existing):"
+  echo "package.json detected. Add/adapt these entries in \"scripts\" (preserving existing):"
   cat <<'EOF'
     "quality:report":            "node scripts/quality/quality-gate.js report",
     "quality:check":             "node scripts/quality/quality-gate.js check",
@@ -231,8 +233,28 @@ if [ -f "$TARGET/package.json" ]; then
     "quality:comment":           "node scripts/quality/render-pr-comment.js",
     "quality:validate":          "node scripts/quality/validate-config.js",
     "quality:explainer-context": "node scripts/quality/run-explainer-context.js",
+    "quality:preflight":         "node scripts/quality/run-local-preflight.js",
+    "quality:hybrid-report":     "node scripts/quality/hybrid-report.js",
     "audit:report":              "node scripts/quality/run-audit-report.js",
-    "complexity:ci":             "node scripts/quality/run-complexity-report.js"
+    "complexity:ci":             "node scripts/quality/run-complexity-report.js",
+    "lint":                      "eslint .",
+    "duplication:ci":            "jscpd --config .jscpd.json --noTips ."
+EOF
+  echo
+  echo "Also define one project-specific coverage script. Do not blindly pass"
+  echo "coverage flags through 'npm run test' if that script wraps Turbo or another task runner."
+  echo "Examples:"
+  echo "  Vitest: \"test:coverage:ci\": \"vitest run --coverage --coverage.reporter=json-summary\""
+  echo "  Jest  : \"test:coverage:ci\": \"jest --coverage --coverageReporters=json-summary\""
+  echo "  node:test+c8: \"test:coverage:ci\": \"c8 --report-dir coverage --reporter=json-summary npm test\""
+  echo
+  echo "Add/keep these devDependencies (or compatible existing versions):"
+  cat <<'EOF'
+    "@eslint/js": "9.39.4",
+    "c8": "10.1.3",
+    "eslint": "9.39.4",
+    "globals": "17.6.0",
+    "jscpd": "4.1.1"
 EOF
 else
   echo
@@ -252,11 +274,14 @@ else
   echo "Install complete."
   echo
   echo "Next steps in the target project:"
-  echo "  1. Merge the package.json snippet above."
-  echo "  2. npm install   # ensure devDependencies (eslint, c8, jscpd) match"
-  echo "  3. npm run quality:validate"
-  echo "  4. npm run quality:report   # writes reports without comparing against baseline"
-  echo "  5. git switch main && npm run quality:baseline   # seed the baseline from current code"
-  echo "  6. git commit quality/baseline.json -m 'chore(quality): seed baseline'"
-  echo "  7. Open the target with Claude Code and type '/quality-gate' — it must appear."
+  echo "  1. Merge/adapt the package.json scripts and devDependencies above."
+  echo "  2. Choose a real test:coverage:ci command for that project's test runner."
+  echo "  3. npm install   # writes/updates lockfile and installs eslint, c8, jscpd"
+  echo "  4. If 'jscpd is not recognized', jscpd was not installed/locked yet."
+  echo "  5. npm run quality:validate"
+  echo "  6. npm run quality:preflight   # local readiness check before GitHub"
+  echo "  7. npm run quality:report   # writes reports without comparing against baseline"
+  echo "  8. git switch main && npm run quality:baseline   # seed the baseline from current code"
+  echo "  9. git commit quality/baseline.json -m 'chore(quality): seed baseline'"
+  echo "  10. Open the target with Claude Code and type '/quality-gate' - it must appear."
 fi

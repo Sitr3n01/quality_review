@@ -116,7 +116,7 @@ function collectCoverage(config) {
     severity: "warning",
     message: "No coverage report was found.",
     recommendation:
-      "Run the test runner with coverage enabled, e.g. `jest --coverage --coverageReporters=json-summary`.",
+      "Run the project-specific `npm run test:coverage:ci` script so it writes `coverage/coverage-summary.json` or `coverage/coverage-final.json`.",
   });
   return { available: false, metrics: null, source: null, warnings };
 }
