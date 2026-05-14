@@ -140,11 +140,11 @@ done < <(find "$SRC" -type f -print0)
 
 echo
 echo "Summary (intra-skill mirror):"
-echo "  created                  : $CREATED"
-echo "  updated                  : $UPDATED"
-echo "  divergent (unexpected)   : $DIVERGENT"
-echo "  intentionally divergent  : $INTENTIONAL"
-echo "  skipped (Codex-only)     : $SKIPPED"
+echo "  created                 : $CREATED"
+echo "  updated                 : $UPDATED"
+echo "  divergent               : $DIVERGENT  (unexpected drift between mirrors)"
+echo "  intentionally divergent : $INTENTIONAL  (per-runtime files: SKILL.md, runtime-detection.md)"
+echo "  skipped                 : $SKIPPED  (Codex-only files like agents/openai.yaml)"
 
 # ---- Structural check: Claude-only template assets outside the skill dir ----
 #
