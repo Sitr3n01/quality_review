@@ -27,6 +27,21 @@ See `references/philosophy.md` for the long-form rationale.
 
 ## When invoked
 
+### Runtime context (do this first)
+
+This skill runs inside Codex (OpenAI Agents SDK), typically in a
+read-only sandbox. Treat every flow as sequential — Codex does not
+expose `Task` / `Agent` delegation. Before any other tool call, run:
+
+```
+echo "RUNTIME=codex BASE_URL=${OPENAI_BASE_URL:-unset}"
+```
+
+Then read `references/runtime-detection.md` for the full table. The
+deterministic gate (`npm run quality:*`) is identical to the Claude side.
+
+### Inspect the repository
+
 First inspect the repository to understand the stack:
 
 - package manager (`pnpm-lock.yaml` / `yarn.lock` / `package-lock.json`)

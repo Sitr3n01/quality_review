@@ -16,8 +16,21 @@ duplication, oversized files, or AI-generated code quality, use the skill:
 /quality-gate
 ```
 
-The skill is also auto-discovered when the user describes a task that matches
-its description.
+The slash command is registered at `.claude/commands/quality-gate.md` and
+the skill is also auto-discovered when the user describes a task that
+matches its description. The two are independent: the slash command
+guarantees `/quality-gate` is always available in projects that copied
+the template, even if auto-discovery is unreliable.
+
+To install the gate into another project, run:
+
+```
+bash scripts/install-into.sh /path/to/target [--dry-run] [--force]
+```
+
+It copies the skill, slash command, subagents, workflows, prompts, and
+deterministic scripts. It **preserves** an existing
+`quality/baseline.json` and `quality-gate.config.cjs` in the target.
 
 ## Rules in this repository
 
@@ -50,6 +63,13 @@ npm run complexity:ci              # write ESLint complexity JSON report
 npm run test:quality               # unit tests for the quality scripts
 npm run test:integration           # integration tests for repo wiring
 npm run test:coverage:ci           # tests plus coverage thresholds
+```
+
+Template-management scripts:
+
+```
+bash scripts/install-into.sh <target>                       # install gate into another project
+bash .claude/skills/quality-gate/scripts/install-or-sync.sh # mirror .claude ↔ .agents within this repo
 ```
 
 ## AI explainer workflows
@@ -93,11 +113,27 @@ bash .claude/skills/quality-gate/scripts/install-or-sync.sh
 
 The script reports divergent files; pass `--force` to apply.
 
-## Claude Desktop
+## Claude Desktop vs Claude Code terminal
 
-The project-scoped skill lives at `.claude/skills/quality-gate/`, which keeps
-the same name and activation metadata for Claude Code and Claude Desktop skill
-workflows.
+The project-scoped skill lives at `.claude/skills/quality-gate/`, which
+keeps the same name and activation metadata for Claude Code and Claude
+Desktop skill workflows. **However**, the assistant's behavior must
+branch by runtime:
+
+- **Claude Desktop** runs Anthropic models managed by the desktop app.
+- **Claude Code terminal** may point at a custom provider (DeepSeek,
+  OpenRouter, ...) via `ANTHROPIC_BASE_URL`. In that mode, delegating to
+  `Task` / `Agent` subagents typically fails because the configured
+  subagent model does not exist in the custom provider.
+
+The skill's first action is to detect the runtime and read
+`.claude/skills/quality-gate/references/runtime-detection.md`. In
+custom-provider runtimes it must work sequentially (`Read`, `Grep`,
+`Glob`, `Bash`). In Desktop / Anthropic runtimes it may use the
+`quality-explainer` and `quality-fixer` subagents from `.claude/agents/`.
+
+The deterministic gate (`npm run quality:*`) is identical in every
+runtime — only the assistant's delegation strategy changes.
 
 ## Memory-style notes
 

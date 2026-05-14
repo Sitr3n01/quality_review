@@ -27,6 +27,28 @@ See `references/philosophy.md` for the long-form rationale.
 
 ## When invoked
 
+### Runtime detection (do this first)
+
+This skill runs in two Claude runtimes that share `.claude/`: Claude
+Desktop (Anthropic models) and Claude Code terminal (may point to any
+provider via `ANTHROPIC_BASE_URL`). The deterministic gate is identical
+in both — only delegation behavior changes. Before any other tool call,
+run:
+
+```
+bash -lc 'echo "CLAUDECODE=${CLAUDECODE:-unset} BASE_URL=${ANTHROPIC_BASE_URL:-unset}"'
+```
+
+Then read `references/runtime-detection.md` and follow its table. The
+short version: in a terminal pointed at a custom provider (DeepSeek,
+OpenRouter, etc.) **do not delegate to `Task` / `Agent`** — the
+configured subagent model will likely not exist and the call will fail
+silently. Work sequentially with `Read`, `Grep`, `Glob`, `Bash`. In
+Claude Desktop or an Anthropic terminal, you may use the
+`quality-explainer` / `quality-fixer` subagents in `.claude/agents/`.
+
+### Inspect the repository
+
 First inspect the repository to understand the stack:
 
 - package manager (`pnpm-lock.yaml` / `yarn.lock` / `package-lock.json`)
