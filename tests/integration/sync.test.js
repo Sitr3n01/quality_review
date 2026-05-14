@@ -5,9 +5,10 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 function runBash(script) {
-  return spawnSync("bash", ["-lc", script], {
+  return spawnSync("bash", ["-s"], {
     cwd: process.cwd(),
     encoding: "utf8",
+    input: script,
     shell: false,
   });
 }
@@ -126,27 +127,27 @@ test("full installer creates Claude and Codex assets while preserving baseline",
   const result = runBash(`
     set -euo pipefail
     tmp="$(mktemp -d)"
-    trap "rm -rf \\$tmp" EXIT
-    mkdir -p "\\$tmp/quality"
-    printf '{"scripts":{}}\\n' > "\\$tmp/package.json"
-    printf '{"sentinel":true}\\n' > "\\$tmp/quality/baseline.json"
+    trap 'rm -rf "\${tmp}"' EXIT
+    mkdir -p "\${tmp}/quality"
+    printf '{"scripts":{}}\\n' > "\${tmp}/package.json"
+    printf '{"sentinel":true}\\n' > "\${tmp}/quality/baseline.json"
 
-    bash scripts/install-into.sh "\\$tmp" --dry-run > "\\$tmp/dry-run.out"
-    grep -q "\\[4/9\\] .agents/skills/quality-gate/" "\\$tmp/dry-run.out"
+    bash scripts/install-into.sh "\${tmp}" --dry-run > "\${tmp}/dry-run.out"
+    grep -q "\\[4/9\\] .agents/skills/quality-gate/" "\${tmp}/dry-run.out"
 
-    bash scripts/install-into.sh "\\$tmp" > "\\$tmp/install.out"
-    test -f "\\$tmp/.claude/skills/quality-gate/SKILL.md"
-    test -f "\\$tmp/.claude/commands/quality-gate.md"
-    test -f "\\$tmp/.agents/skills/quality-gate/SKILL.md"
-    test -f "\\$tmp/scripts/quality/quality-gate.js"
-    test -f "\\$tmp/.jscpd.json"
-    test -f "\\$tmp/eslint.complexity.config.cjs"
-    test -f "\\$tmp/quality/quality-gate.config.cjs"
-    grep -q '"sentinel":true' "\\$tmp/quality/baseline.json"
-    grep -q '"duplication:ci"' "\\$tmp/install.out"
-    grep -q '"quality:preflight"' "\\$tmp/install.out"
-    grep -q '"jscpd": "4.1.1"' "\\$tmp/install.out"
-    grep -q "test:coverage:ci" "\\$tmp/install.out"
+    bash scripts/install-into.sh "\${tmp}" > "\${tmp}/install.out"
+    test -f "\${tmp}/.claude/skills/quality-gate/SKILL.md"
+    test -f "\${tmp}/.claude/commands/quality-gate.md"
+    test -f "\${tmp}/.agents/skills/quality-gate/SKILL.md"
+    test -f "\${tmp}/scripts/quality/quality-gate.js"
+    test -f "\${tmp}/.jscpd.json"
+    test -f "\${tmp}/eslint.complexity.config.cjs"
+    test -f "\${tmp}/quality/quality-gate.config.cjs"
+    grep -q '"sentinel":true' "\${tmp}/quality/baseline.json"
+    grep -q '"duplication:ci"' "\${tmp}/install.out"
+    grep -q '"quality:preflight"' "\${tmp}/install.out"
+    grep -q '"jscpd": "4.1.1"' "\${tmp}/install.out"
+    grep -q "test:coverage:ci" "\${tmp}/install.out"
   `);
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
@@ -155,20 +156,20 @@ test("Codex installer dry-runs skill-only and full modes", () => {
   const result = runBash(`
     set -euo pipefail
     tmp="$(mktemp -d)"
-    trap "rm -rf \\$tmp" EXIT
+    trap 'rm -rf "\${tmp}"' EXIT
 
-    bash scripts/install-codex.sh "\\$tmp" --dry-run --ref=test-ref > "\\$tmp/skill.out"
-    grep -q "ref 'test-ref'" "\\$tmp/skill.out"
-    grep -q ".agents/skills/quality-gate" "\\$tmp/skill.out"
-    if grep -q "main branch" "\\$tmp/skill.out"; then
+    bash scripts/install-codex.sh "\${tmp}" --dry-run --ref=test-ref > "\${tmp}/skill.out"
+    grep -q "ref 'test-ref'" "\${tmp}/skill.out"
+    grep -q ".agents/skills/quality-gate" "\${tmp}/skill.out"
+    if grep -q "main branch" "\${tmp}/skill.out"; then
       echo "dry-run incorrectly mentions main branch" >&2
       exit 1
     fi
 
-    bash scripts/install-codex.sh "\\$tmp" --dry-run --full --ref=test-ref > "\\$tmp/full.out"
-    grep -q "ref 'test-ref'" "\\$tmp/full.out"
-    grep -q "full installer" "\\$tmp/full.out"
-    grep -q "install-into.sh" "\\$tmp/full.out"
+    bash scripts/install-codex.sh "\${tmp}" --dry-run --full --ref=test-ref > "\${tmp}/full.out"
+    grep -q "ref 'test-ref'" "\${tmp}/full.out"
+    grep -q "full installer" "\${tmp}/full.out"
+    grep -q "install-into.sh" "\${tmp}/full.out"
   `);
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
