@@ -1,6 +1,9 @@
 ---
-description: Run the deterministic quality gate (install, check, explain, fix, baseline).
+description: Run the deterministic quality gate (install, check, explain, fix, baseline). Project-scoped fallback — if you installed the plugin (`/plugin install quality-gate@quality-gate`), prefer the namespaced slashes `/quality-gate:check`, `/quality-gate:install`, `/quality-gate:explain`, `/quality-gate:fix`, `/quality-gate:baseline` instead.
 ---
+
+> **Note**: this is the monolithic project-scoped slash that dispatches by argument. If you have the Claude Code plugin installed (`/plugin install quality-gate@quality-gate`), prefer the focused namespaced slashes:
+> `/quality-gate:check`, `/quality-gate:install`, `/quality-gate:explain`, `/quality-gate:fix`, `/quality-gate:baseline`.
 
 Invoke the `quality-gate` skill.
 

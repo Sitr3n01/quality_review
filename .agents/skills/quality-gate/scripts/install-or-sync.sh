@@ -156,6 +156,13 @@ CLAUDE_TEMPLATE_FILES=(
   ".claude/commands/quality-gate.md"
   ".claude/agents/quality-explainer.md"
   ".claude/agents/quality-fixer.md"
+  ".claude-plugin/plugin.json"
+  ".claude-plugin/marketplace.json"
+  ".claude/skills/quality-gate-modes/check/SKILL.md"
+  ".claude/skills/quality-gate-modes/install/SKILL.md"
+  ".claude/skills/quality-gate-modes/explain/SKILL.md"
+  ".claude/skills/quality-gate-modes/fix/SKILL.md"
+  ".claude/skills/quality-gate-modes/baseline/SKILL.md"
 )
 
 MISSING=0

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "quality-gate",
+  "owner": {
+    "name": "Sitr3n01",
+    "email": "zegilfarias@gmail.com"
+  },
+  "description": "Single-plugin marketplace hosting the quality-gate skill. Install with: /plugin marketplace add Sitr3n01/quality_review && /plugin install quality-gate@quality-gate",
+  "plugins": [
+    {
+      "name": "quality-gate",
+      "source": "./",
+      "description": "Deterministic CI/CD quality gate. Use /quality-gate:check (run gate), /quality-gate:install (set up in this repo), /quality-gate:explain (read reports), /quality-gate:fix (minimal patch), /quality-gate:baseline (seed baseline on main).",
+      "category": "quality",
+      "tags": [
+        "ci-cd",
+        "code-review",
+        "ratchet",
+        "ai-review",
+        "deterministic-checks"
+      ],
+      "homepage": "https://github.com/Sitr3n01/quality_review",
+      "license": "MIT"
+    }
+  ]
+}
