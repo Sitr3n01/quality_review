@@ -43,25 +43,78 @@ The skill ships:
 
 ## Installation
 
-### Option A: via Claude Code
+The fastest install is the **Claude Code plugin** — one `/plugin install`
+and the skill is available in every one of your projects, with no manual
+file copying.
 
-In a project where Claude Code is configured, invoke the skill:
+| Your runtime | One-command install |
+|---|---|
+| **Claude Code** (terminal or Desktop) | `/plugin marketplace add Sitr3n01/quality_review` then `/plugin install quality-gate@quality-gate` |
+| **Codex (OpenAI Agents SDK)** | `curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh \| bash` |
+| **Any project, any runtime (full)** | `bash scripts/install-into.sh /path/to/target` after cloning this repo |
 
+After install in any new project, seed the baseline once on `main`:
+
+```bash
+git switch main
+npm run quality:baseline
+git commit quality/baseline.json -m "chore(quality): seed baseline"
 ```
-/quality-gate
+
+### Option A: Claude Code plugin (recommended)
+
+One-time setup that exposes the skill in **every project** without
+touching their `.claude/` directories:
+
+```text
+/plugin marketplace add Sitr3n01/quality_review
+/plugin install quality-gate@quality-gate
+/reload-plugins
 ```
 
-Or describe the task in natural language (for example, "configure a quality gate for AI-generated code") and Claude will auto-discover the skill.
+Available slash commands in every project after install:
 
-### Option B: via Codex
+| Slash | What it does |
+|---|---|
+| `/quality-gate:check` | Run `npm run quality:check` and explain the verdict |
+| `/quality-gate:install` | Set up the gate in the current repo (scripts, workflows, config) |
+| `/quality-gate:explain` | Read `reports/quality-gate.json` and explain what's blocking |
+| `/quality-gate:fix` | Apply the minimum patch that makes the gate pass legitimately |
+| `/quality-gate:baseline` | Initialize / refresh `quality/baseline.json` on `main` (guarded) |
 
-In a project where Codex is configured:
+For users who already have the skill copied into their project's
+`.claude/skills/quality-gate/` (the pre-plugin era), `/quality-gate` (no
+namespace) continues to work as a monolithic fallback.
 
+The plugin also installs two read-only subagents (`quality-explainer`,
+`quality-fixer`) for Anthropic-capable runtimes — see
+[`.claude/agents/`](./.claude/agents) for tool surfaces and model pins.
+
+### Option B: Codex one-liner
+
+From inside the target project:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh | bash
 ```
-$quality-gate
+
+Or targeting an explicit path (good for scripted setup):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh \
+  | bash -s -- /path/to/target
 ```
 
-Or describe the task and rely on implicit invocation.
+This drops `.agents/skills/quality-gate/` into the target project. Codex
+auto-discovers the skill on the next session. To also install the
+deterministic gate scripts (`npm run quality:*`), follow Option D.
+
+### Option B (alternative): Codex auto-invoke from a configured project
+
+If Codex is already configured for the project and the skill files are
+present, you can also describe the task in natural language (for
+example, "run the quality gate") and Codex will use implicit invocation
+via `.agents/skills/quality-gate/agents/openai.yaml`.
 
 ### Option C: via Google Antigravity
 
@@ -73,12 +126,38 @@ Ask the agent to "run the Quality Gate" or "fix the deterministic quality gate"
 and it should use those rules before touching CI/CD, baseline, coverage,
 duplication, audit, or quality automation files.
 
-### Option D: manual
+### Option D: manual / scripted install (any runtime)
 
-Clone this repository or copy the following top-level paths into your project:
+If `/plugin` is unavailable or you want the gate's files committed
+directly into the target repo, use the bundled installer script:
+
+```bash
+git clone https://github.com/Sitr3n01/quality_review
+cd quality_review
+bash scripts/install-into.sh /path/to/target [--dry-run] [--force]
+```
+
+The installer is **additive**:
+
+- Copies the skill, slash command, subagents, GitHub workflows, prompts,
+  and deterministic scripts.
+- **Preserves** an existing `quality/quality-gate.config.cjs` and
+  `quality/baseline.json` in the target — never overwrites project
+  policy.
+- Prints a `package.json` snippet for you to merge.
+- Supports `--dry-run` (list-only) and `--force` (overwrite divergent
+  files).
+
+For full manual control, copy the following top-level paths into your
+project instead:
 
 ```
 .claude/skills/quality-gate/
+.claude/commands/quality-gate.md
+.claude/agents/quality-explainer.md
+.claude/agents/quality-fixer.md
+.claude-plugin/plugin.json
+.claude-plugin/marketplace.json
 .agents/skills/quality-gate/
 .agent/rules/quality-gate.md
 .github/workflows/

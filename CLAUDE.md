@@ -22,15 +22,40 @@ matches its description. The two are independent: the slash command
 guarantees `/quality-gate` is always available in projects that copied
 the template, even if auto-discovery is unreliable.
 
-To install the gate into another project, run:
+## How users install Quality Gate
 
-```
-bash scripts/install-into.sh /path/to/target [--dry-run] [--force]
-```
+There are three supported install routes, ordered by recommendation:
 
-It copies the skill, slash command, subagents, workflows, prompts, and
-deterministic scripts. It **preserves** an existing
-`quality/baseline.json` and `quality-gate.config.cjs` in the target.
+1. **Claude Code plugin (preferred, zero-shell)**. The repo is both a
+   plugin and a marketplace. Users run:
+   ```
+   /plugin marketplace add Sitr3n01/quality_review
+   /plugin install quality-gate@quality-gate
+   /reload-plugins
+   ```
+   After install, the skill is available in **every project** of that
+   user (scope: user). Available namespaced slashes:
+   `/quality-gate:check`, `:install`, `:explain`, `:fix`, `:baseline`.
+
+2. **Codex one-liner**. For OpenAI Agents SDK (no `/plugin` support):
+   ```
+   curl -fsSL https://raw.githubusercontent.com/Sitr3n01/quality_review/main/scripts/install-codex.sh | bash
+   ```
+   Drops `.agents/skills/quality-gate/` into the current project. Codex
+   auto-discovers on next session.
+
+3. **Manual scripted install (any runtime)**. Clone this repo and run:
+   ```
+   bash scripts/install-into.sh /path/to/target [--dry-run] [--force]
+   ```
+   Aditive: copies the skill, slash command, subagents, workflows,
+   prompts, and deterministic scripts. **Preserves** an existing
+   `quality/baseline.json` and `quality-gate.config.cjs` in the target.
+
+The plugin manifest lives at `.claude-plugin/plugin.json`; the
+marketplace catalog at `.claude-plugin/marketplace.json`. Both reuse
+`.claude/skills/`, `.claude/commands/`, `.claude/agents/` via override
+fields — no file duplication.
 
 ## Rules in this repository
 

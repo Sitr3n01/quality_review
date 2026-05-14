@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "quality-gate",
+  "description": "Deterministic CI/CD quality gate for AI-assisted codebases. Ratchet-based regression detection with AI as advisory layer only. Provides /quality-gate:check, :install, :explain, :fix, :baseline.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sitr3n01"
+  },
+  "homepage": "https://github.com/Sitr3n01/quality_review",
+  "repository": "https://github.com/Sitr3n01/quality_review",
+  "license": "MIT",
+  "keywords": [
+    "quality-gate",
+    "ci-cd",
+    "ratchet",
+    "ai-review",
+    "code-review",
+    "coverage",
+    "duplication",
+    "deterministic"
+  ],
+  "skills": [
+    ".claude/skills",
+    ".claude/skills/quality-gate-modes"
+  ],
+  "commands": ".claude/commands",
+  "agents": ".claude/agents"
+}
