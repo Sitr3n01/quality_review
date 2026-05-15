@@ -30,7 +30,7 @@ There are four supported install routes, ordered by recommendation:
    and a marketplace, and Claude Code can load it directly from the local
    filesystem. Users run:
    ```
-   claude plugin marketplace add "C:/Users/zegil/Documents/GitHub/quality_review" --scope user
+   claude plugin marketplace add "/path/to/quality_review" --scope user
    claude plugin install quality-gate@quality-gate --scope user
    ```
    After install, the skill is available in **every project** of that
